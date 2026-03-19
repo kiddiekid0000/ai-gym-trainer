@@ -1,3 +1,4 @@
+### Existing content (keep all your current rules) ###
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
@@ -6,7 +7,34 @@ target/
 
 ### Environment files ###
 .env
+.env.local
+.env.*.local
 
+### Logs ###
+logs/
+*.log
+*.log.*
+
+### OS files ###
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+
+### Application-specific ###
+application-local.properties
+application-local.yml
+*.secret
+secrets/
+test-output/
+
+### IDEs (your existing sections) ###
 ### STS ###
 .apt_generated
 .classpath
@@ -34,3 +62,4 @@ build/
 
 ### VS Code ###
 .vscode/
+*.code-workspace
