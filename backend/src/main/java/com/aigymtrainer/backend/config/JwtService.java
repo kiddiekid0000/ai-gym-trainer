@@ -2,6 +2,7 @@ package com.aigymtrainer.backend.config;
 
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -11,7 +12,8 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    private final String SECRET_KEY = "thesecrekeythatactuallylongenoughtomatchthehash256bit"; 
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
 
     // 🔥 tạo token
     public String generateToken(String email) {

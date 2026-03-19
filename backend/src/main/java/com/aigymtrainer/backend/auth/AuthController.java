@@ -24,11 +24,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest request) {
-        try {
-            return authService.login(request);
-        } catch (Exception e) {
-            // For debugging, return a response with error
-            return new AuthResponse(null, "error: " + e.getMessage(), null);
-        }
+        return authService.login(request);
     }
 }
