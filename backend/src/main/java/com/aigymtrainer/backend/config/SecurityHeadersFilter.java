@@ -26,28 +26,38 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Prevent clickjacking
+        // Prevent basic attacks
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Frame-Options", "DENY");
 
-        // CSP for SPA (React/Vite) - blocks most XSS without breaking app
+        // Detect environment (dev vs prod)
         boolean isDev = environment.matchesProfiles("dev") || environment.matchesProfiles("default");
-        String connectSrc = isDev ? "'self' http://localhost:8080;" : "'self' https://yourdomain.com;";  // Adjust prod domain
 
+        // Fix connect-src (NO trailing ;)
+        String connectSrc = isDev
+                ? "'self' http://localhost:8080"
+                : "'self' https://yourdomain.com";
+
+        // Dev allows inline for convenience, Prod is strict
+        String styleSrc = isDev
+                ? "'self' 'unsafe-inline'"
+                : "'self'";
+
+        // CSP Header
         response.setHeader("Content-Security-Policy",
-            "default-src 'self'; " +
-            "script-src 'self'; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'self' data: https:; " +  // Allow HTTPS images for CDN
-            "font-src 'self' data:; " +
-            "connect-src " + connectSrc + " " +
-            "object-src 'none'; " +
-            "frame-ancestors 'none'; " +
-            "base-uri 'self'; " +
-            "form-action 'self';"
+                "default-src 'self'; " +
+                "script-src 'self'; " +
+                "style-src " + styleSrc + "; " +
+                "img-src 'self' data: https:; " +
+                "font-src 'self' data:; " +
+                "connect-src " + connectSrc + "; " +
+                "object-src 'none'; " +
+                "frame-ancestors 'none'; " +
+                "base-uri 'self'; " +
+                "form-action 'self';"
         );
 
-        // HSTS only on HTTPS
+        // HSTS only when HTTPS
         if (request.isSecure()) {
             response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
         }
