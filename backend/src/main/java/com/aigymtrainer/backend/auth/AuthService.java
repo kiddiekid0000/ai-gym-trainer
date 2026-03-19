@@ -4,10 +4,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.aigymtrainer.backend.auth.dto.AuthResponse;
+import com.aigymtrainer.backend.auth.dto.LoginRequest;
 import com.aigymtrainer.backend.config.JwtService;
 import com.aigymtrainer.backend.user.Role;
 import com.aigymtrainer.backend.user.User;
 import com.aigymtrainer.backend.user.UserRepository;
+import com.aigymtrainer.backend.user.dto.UserRegistrationDto;
 
 @Service
 public class AuthService {
@@ -31,8 +34,10 @@ public class AuthService {
     }
 
     // 🟢 REGISTER
-    public AuthResponse register(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public AuthResponse register(UserRegistrationDto userDto) {
+        User user = new User();
+        user.setEmail(userDto.getEmail());
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(Role.USER); // Default role for registered users
 
         User savedUser = userRepository.save(user);

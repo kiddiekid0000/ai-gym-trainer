@@ -15,7 +15,7 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 
-    // 🔥 tạo token
+    // Create token
     public String generateToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
@@ -25,12 +25,12 @@ public class JwtService {
                 .compact();
     }
 
-    // 🔥 lấy email từ token
+    // extract email from token
     public String extractEmail(String token) {
         return getClaims(token).getSubject();
     }
 
-    // 🔥 verify + parse token
+    // verify and parse token
     private Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))

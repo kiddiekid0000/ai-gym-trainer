@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.auth;
+package com.aigymtrainer.backend.auth.dto;
 
 public class LoginRequest {
     private String email;
