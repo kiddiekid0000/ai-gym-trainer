@@ -1,9 +1,12 @@
 package com.aigymtrainer.backend.config;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -15,10 +18,14 @@ import jakarta.servlet.http.HttpServletResponse;
 
 
 @Component
+@Order(3)
 public class JwtFilter extends OncePerRequestFilter {
 
-
     private final JwtService jwtService;
+
+    @Value("${admin.email}")
+    private String adminEmail;
+
     public JwtFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
@@ -34,20 +41,31 @@ public class JwtFilter extends OncePerRequestFilter {
         return;
     }
 
-    final String authHeader = request.getHeader("Authorization");
+    // Get token from cookie
+    String token = null;
+    if (request.getCookies() != null) {
+        for (var cookie : request.getCookies()) {
+            if ("accessToken".equals(cookie.getName())) {
+                token = cookie.getValue();
+                break;
+            }
+        }
+    }
 
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    if (token == null || token.isEmpty()) {
         filterChain.doFilter(request, response);
         return;
     }
 
-    String token = authHeader.substring(7);
     String email = jwtService.extractEmail(token);
 
     if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // Determine role: admin if email matches, else user
+        String role = email.equals(adminEmail) ? "ROLE_ADMIN" : "ROLE_USER";
+        var authorities = List.of(new SimpleGrantedAuthority(role));
 
         UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
+                new UsernamePasswordAuthenticationToken(email, null, authorities);
 
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }

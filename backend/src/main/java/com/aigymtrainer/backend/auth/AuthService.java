@@ -5,6 +5,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.aigymtrainer.backend.auth.dto.AuthResponse;
+import com.aigymtrainer.backend.auth.dto.AuthResult;
+import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
 import com.aigymtrainer.backend.config.JwtService;
 import com.aigymtrainer.backend.user.Role;
@@ -34,7 +36,7 @@ public class AuthService {
     }
 
     // 🟢 REGISTER
-    public AuthResponse register(UserRegistrationDto userDto) {
+    public AuthResult register(UserRegistrationDto userDto) {
         User user = new User();
         user.setEmail(userDto.getEmail());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
@@ -42,28 +44,25 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String token = jwtService.generateToken(savedUser.getEmail());
+        String accessToken = jwtService.generateAccessToken(savedUser.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(savedUser.getEmail());
 
-        return new AuthResponse(
-                savedUser.getId(),
-                savedUser.getEmail(),
-                token,
-                savedUser.getRole().name()
-        );
+        return new AuthResult(new AuthTokens(accessToken, refreshToken), savedUser);
     }
 
     // 🔵 LOGIN
-    public AuthResponse login(LoginRequest request) {
+    public AuthResult login(LoginRequest request) {
         // Check if it's admin login
         if (request.getEmail().equals(adminEmail) && request.getPassword().equals(adminPassword)) {
             // Admin login
-            String token = jwtService.generateToken(adminEmail);
-            return new AuthResponse(
-                    null, // No ID for admin
-                    adminEmail,
-                    token,
-                    Role.ADMIN.name()
-            );
+            User adminUser = new User();
+            adminUser.setEmail(adminEmail);
+            adminUser.setRole(Role.ADMIN);
+            // No ID for admin
+
+            String accessToken = jwtService.generateAccessToken(adminEmail);
+            String refreshToken = jwtService.generateRefreshToken(adminEmail);
+            return new AuthResult(new AuthTokens(accessToken, refreshToken), adminUser);
         }
 
         // Regular user login
@@ -80,13 +79,9 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String accessToken = jwtService.generateAccessToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
-        return new AuthResponse(
-                user.getId(),
-                user.getEmail(),
-                token,
-                user.getRole().name()
-        );
+        return new AuthResult(new AuthTokens(accessToken, refreshToken), user);
     }
 }
