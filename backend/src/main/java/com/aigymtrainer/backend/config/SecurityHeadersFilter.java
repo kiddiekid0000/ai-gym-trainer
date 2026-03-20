@@ -33,10 +33,10 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
         // Detect environment (dev vs prod)
         boolean isDev = environment.matchesProfiles("dev") || environment.matchesProfiles("default");
 
-        // Fix connect-src (NO trailing ;)
+        // connect-src for header response, allow localhost in dev for API calls, strict in prod
         String connectSrc = isDev
                 ? "'self' http://localhost:8080"
-                : "'self' https://yourdomain.com";
+                : "'self' https://yourdomain.com";    //change to real domain when deploy
 
         // Dev allows inline for convenience, Prod is strict
         String styleSrc = isDev

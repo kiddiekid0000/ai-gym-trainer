@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.aigymtrainer.backend.auth.dto.AuthResponse;
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
@@ -35,8 +34,13 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    // 🟢 REGISTER
+    // REGISTER
     public AuthResult register(UserRegistrationDto userDto) {
+
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+        throw new RuntimeException("Email already exists"); 
+    }
+
         User user = new User();
         user.setEmail(userDto.getEmail());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
@@ -50,7 +54,7 @@ public class AuthService {
         return new AuthResult(new AuthTokens(accessToken, refreshToken), savedUser);
     }
 
-    // 🔵 LOGIN
+    // LOGIN
     public AuthResult login(LoginRequest request) {
         // Check if it's admin login
         if (request.getEmail().equals(adminEmail) && request.getPassword().equals(adminPassword)) {

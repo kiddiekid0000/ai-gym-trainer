@@ -27,7 +27,7 @@ public class User {
     @Column(nullable = false, columnDefinition = "varchar(255) default 'USER'")
     private Role role = Role.USER;
 
-    // ===== Getter / Setter =====
+    //Getter / Setter 
 
     public Long getId() {
         return id;

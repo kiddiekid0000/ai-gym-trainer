@@ -35,7 +35,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                 FilterChain filterChain)
         throws ServletException, IOException {
 
-    // 🚨 BỎ QUA /auth/*
+    // Allow auth since user haven't have token
     if (request.getServletPath().startsWith("/auth")) {
         filterChain.doFilter(request, response);
         return;

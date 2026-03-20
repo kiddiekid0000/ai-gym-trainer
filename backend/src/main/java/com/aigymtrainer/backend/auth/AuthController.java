@@ -12,11 +12,13 @@ import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
 import com.aigymtrainer.backend.config.JwtService;
 import com.aigymtrainer.backend.user.User;
+import com.aigymtrainer.backend.user.UserRepository;
 import com.aigymtrainer.backend.user.dto.UserRegistrationDto;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+
 
 @RestController
 @RequestMapping("/auth")
@@ -24,10 +26,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final UserRepository userRepository;  
 
-    public AuthController(AuthService authService, JwtService jwtService) {
+
+    public AuthController(AuthService authService, JwtService jwtService, UserRepository userRepository) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
@@ -45,31 +50,47 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public AuthResponse refresh(@CookieValue(value = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
-        if (refreshToken == null || jwtService.isTokenExpired(refreshToken)) {
-            throw new RuntimeException("Invalid refresh token");
-        }
-        String email = jwtService.extractEmail(refreshToken);
-        String newAccessToken = jwtService.generateAccessToken(email);
-        String newRefreshToken = jwtService.generateRefreshToken(email);
-
-        Cookie accessCookie = new Cookie("accessToken", newAccessToken);
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(true);
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(15 * 60);
-        response.addCookie(accessCookie);
-
-        Cookie newRefreshCookie = new Cookie("refreshToken", newRefreshToken);
-        newRefreshCookie.setHttpOnly(true);
-        newRefreshCookie.setSecure(true);
-        newRefreshCookie.setPath("/");
-        newRefreshCookie.setMaxAge(7 * 24 * 60 * 60);
-        response.addCookie(newRefreshCookie);
-
-        // For simplicity, return basic response; in real app, fetch user details
-        return new AuthResponse(null, email, "USER"); // Adjust role as needed
+    public AuthResponse refresh(@CookieValue(value = "refreshToken", required = false) String refreshToken, 
+                           HttpServletResponse response) {
+    
+    // check if refresh token is still valid
+    if (refreshToken == null || jwtService.isTokenExpired(refreshToken)) {
+        throw new RuntimeException("Invalid refresh token");
     }
+    
+    // get email from refresh token
+    String email = jwtService.extractEmail(refreshToken);
+    
+    // fetch user from database to get role for later use
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+    
+    // Create new token
+    String newAccessToken = jwtService.generateAccessToken(email);
+    String newRefreshToken = jwtService.generateRefreshToken(email);
+
+    // 4. Set new cookies
+    Cookie accessCookie = new Cookie("accessToken", newAccessToken);
+    accessCookie.setHttpOnly(true);
+    accessCookie.setSecure(true);
+    accessCookie.setPath("/");
+    accessCookie.setMaxAge(15 * 60); // 15 minutes for access token
+    response.addCookie(accessCookie);
+
+    Cookie newRefreshCookie = new Cookie("refreshToken", newRefreshToken);
+    newRefreshCookie.setHttpOnly(true);
+    newRefreshCookie.setSecure(true);
+    newRefreshCookie.setPath("/");
+    newRefreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days for refresh token
+    response.addCookie(newRefreshCookie);
+
+    // return user infor from database
+    return new AuthResponse(
+        user.getId(),           
+        user.getEmail(),        
+        user.getRole().name()   
+    );
+}
 
     private void setAuthCookies(HttpServletResponse response, AuthTokens tokens) {
         Cookie accessCookie = new Cookie("accessToken", tokens.accessToken());
