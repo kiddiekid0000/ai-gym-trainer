@@ -48,7 +48,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
                 "default-src 'self'; " +
                 "script-src 'self'; " +
                 "style-src " + styleSrc + "; " +
-                "img-src 'self' data: https:; " +
+                "img-src 'self' data: https:; " +    //THIS 'img-src....https' ALLOW ALL HTTPS WEB AND CAN BE INJECTED WITH <img> tag, ---> user a direct url to store image. Save url in postgress, save real image in Firebase. When backend try to load img, from url https:...firebase --> img-src allow, else not allow to prevent attacker
                 "font-src 'self' data:; " +
                 "connect-src " + connectSrc + "; " +
                 "object-src 'none'; " +
