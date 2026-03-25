@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/urlConfig';
+import { useAuth } from '../features/auth/hooks/useAuth';
 import './UserPage.css';
 
 const UserPage = () => {
@@ -9,6 +10,7 @@ const UserPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     fetchProfile();
@@ -33,9 +35,7 @@ const UserPage = () => {
   };
 
   const handleLogout = () => {
-    document.cookie = 'accessToken=; Max-Age=0; path=/';
-    document.cookie = 'refreshToken=; Max-Age=0; path=/';
-    navigate('/');
+    logout();
   };
 
   if (loading) return <div className="loading">Loading...</div>;

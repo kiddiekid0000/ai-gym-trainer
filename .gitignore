@@ -14,6 +14,9 @@ target/
 logs/
 *.log
 *.log.*
+spring-boot-logger.log
+docker.log
+docker-compose.log
 
 ### OS files ###
 .DS_Store
@@ -63,3 +66,10 @@ build/
 ### VS Code ###
 .vscode/
 *.code-workspace
+
+
+# TypeScript build files
+*.d.ts
+*.d.ts.map
+*.js.map
+*.js

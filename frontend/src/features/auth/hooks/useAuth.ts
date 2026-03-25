@@ -41,9 +41,14 @@ export const useAuth = () => {
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    navigate('/');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err: any) {
+      console.error('Logout error:', err);
+    } finally {
+      navigate('/');
+    }
   };
 
   return { login, register, logout, loading, error };

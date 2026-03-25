@@ -37,7 +37,17 @@ class AuthService {
     return response.data;
   }
 
-  logout(): void {
+
+  //force to call log out api sucessfully, if not cannot log out. 
+  // Because if let user log out without successfully calling logout api, 
+  // token will not be deleted and attacker can use token
+  async logout(): Promise<void> {
+    await axios.post(
+      `${API_BASE_URL}${AUTH_ENDPOINTS.LOGOUT}`,
+      {},
+      { withCredentials: true }
+    );
+    
     document.cookie = 'accessToken=; Max-Age=0; path=/';
     document.cookie = 'refreshToken=; Max-Age=0; path=/';
   }

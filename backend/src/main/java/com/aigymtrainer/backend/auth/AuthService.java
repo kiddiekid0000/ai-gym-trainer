@@ -19,6 +19,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final TokenService tokenService;
 
     @Value("${admin.email}")
     private String adminEmail;
@@ -28,10 +29,12 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       TokenService tokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.tokenService = tokenService;
     }
 
     // REGISTER
@@ -50,6 +53,9 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(savedUser.getEmail());
         String refreshToken = jwtService.generateRefreshToken(savedUser.getEmail());
+        
+        // Store refresh token in Redis
+        tokenService.storeRefreshToken(savedUser.getEmail(), refreshToken);
 
         return new AuthResult(new AuthTokens(accessToken, refreshToken), savedUser);
     }
@@ -66,6 +72,10 @@ public class AuthService {
 
             String accessToken = jwtService.generateAccessToken(adminEmail);
             String refreshToken = jwtService.generateRefreshToken(adminEmail);
+            
+            // Store refresh token in Redis
+            tokenService.storeRefreshToken(adminEmail, refreshToken);
+            
             return new AuthResult(new AuthTokens(accessToken, refreshToken), adminUser);
         }
 
@@ -85,6 +95,9 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        
+        // Store refresh token in Redis
+        tokenService.storeRefreshToken(user.getEmail(), refreshToken);
 
         return new AuthResult(new AuthTokens(accessToken, refreshToken), user);
     }

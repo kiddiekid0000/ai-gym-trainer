@@ -29,7 +29,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()) // CSRF token in cookie, accessible to JS
-                .ignoringRequestMatchers("/auth/login", "/auth/register") // Disable CSRF for auth endpoints
+                .ignoringRequestMatchers("/auth/login", "/auth/register", "/auth/logout") // Disable CSRF for auth endpoints
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()

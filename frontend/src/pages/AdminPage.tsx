@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/urlConfig';
+import { useAuth } from '../features/auth/hooks/useAuth';
 import './AdminPage.css';
 
 const AdminPage = () => {
@@ -9,6 +10,7 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     fetchAdminData();
@@ -22,7 +24,7 @@ const AdminPage = () => {
       setAdminData(response.data);
     } catch (err: any) {
       if (err.response?.status === 403 || err.response?.status === 401) {
-        // Không có quyền hoặc chưa đăng nhập
+        // Not authorized or not logged in
         navigate('/login');
       } else {
         setError(err.response?.data?.message || 'Failed to load admin data');
@@ -33,9 +35,7 @@ const AdminPage = () => {
   };
 
   const handleLogout = () => {
-    document.cookie = 'accessToken=; Max-Age=0; path=/';
-    document.cookie = 'refreshToken=; Max-Age=0; path=/';
-    navigate('/');
+    logout();
   };
 
   if (loading) return <div className="loading">Loading...</div>;
