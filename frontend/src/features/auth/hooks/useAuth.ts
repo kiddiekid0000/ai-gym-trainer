@@ -15,10 +15,13 @@ export const useAuth = () => {
     try {
       const response = await authService.login({ email, password });
       
-      if (response.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/user');
+      if (response.status === 'AUTHENTICATED') {
+        // User is logged in, redirect based on role
+        if (response.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/user');
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
@@ -32,8 +35,17 @@ export const useAuth = () => {
     setError('');
     
     try {
-      await authService.register({ email, password });
-      navigate('/user');
+      const response = await authService.register({ email, password });
+      
+      // Check if OTP verification is required
+      if (response.status === 'PENDING_OTP_VERIFICATION') {
+        // Store email for OTP verification page
+        localStorage.setItem('pendingEmail', response.email);
+        navigate('/verify-otp');
+      } else {
+        // Unexpected status
+        console.error('Unexpected registration response');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

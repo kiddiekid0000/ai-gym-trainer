@@ -13,9 +13,10 @@ interface RegisterData {
 }
 
 interface AuthResponse {
-  id: number;
+  id?: number;
   email: string;
-  role: 'USER' | 'ADMIN';
+  role?: 'USER' | 'ADMIN';
+  status?: 'PENDING_OTP_VERIFICATION' | 'VERIFIED' | 'AUTHENTICATED';
 }
 
 class AuthService {
@@ -37,6 +38,23 @@ class AuthService {
     return response.data;
   }
 
+
+  async verifyOtp(email: string, otp: string): Promise<AuthResponse> {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/verify-otp`,
+      { email, otp },
+      { withCredentials: true }
+    );
+    return response.data;
+  }
+
+  async resendOtp(email: string): Promise<void> {
+    await axios.post(
+      `${API_BASE_URL}/auth/resend-otp`,
+      { email },
+      { withCredentials: true }
+    );
+  }
 
   //force to call log out api sucessfully, if not cannot log out. 
   // Because if let user log out without successfully calling logout api, 

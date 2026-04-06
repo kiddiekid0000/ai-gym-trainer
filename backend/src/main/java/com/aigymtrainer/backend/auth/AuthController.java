@@ -47,21 +47,21 @@ public class AuthController {
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody UserRegistrationDto userDto, HttpServletResponse response) { 
         AuthResult result = authService.register(userDto);
-        // No tokens for unverified user
-        return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name());
+        // No tokens for unverified user - status indicates OTP verification is pending
+        return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name(), "PENDING_OTP_VERIFICATION");
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         AuthResult result = authService.login(request);
         setAuthCookies(response, result.tokens());
-        return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name());
+        return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name(), "AUTHENTICATED");
     }
 
     @PostMapping("/send-otp")
     public AuthResponse sendOtp(@RequestBody OtpRequest request) {
         authService.sendOtp(request.email());
-        return new AuthResponse(null, request.email(), null);
+        return new AuthResponse(null, request.email(), null, "OTP_SENT");
     }
 
     @PostMapping("/verify-otp")
@@ -70,11 +70,8 @@ public class AuthController {
         // After verification, allow login
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
-        tokenService.storeRefreshToken(user.getEmail(), refreshToken);
-        setAuthCookies(response, new AuthTokens(accessToken, refreshToken));
-        return new AuthResponse(user.getId(), user.getEmail(), user.getRole().name());
+        // Return verified status - frontend should redirect to login
+        return new AuthResponse(user.getId(), user.getEmail(), user.getRole().name(), "VERIFIED");
     }
 
     @PostMapping("/logout")
@@ -105,7 +102,7 @@ public class AuthController {
         clearAuthCookies(response);
         logger.info("Logout completed successfully");
         
-        return new AuthResponse(null, null, null);
+        return new AuthResponse(null, null, null, "LOGGED_OUT");
     }
     
     /**
@@ -178,7 +175,8 @@ public class AuthController {
         return new AuthResponse(
             user.getId(),           
             user.getEmail(),        
-            user.getRole().name()   
+            user.getRole().name(),
+            "AUTHENTICATED"
         );
     }
 
