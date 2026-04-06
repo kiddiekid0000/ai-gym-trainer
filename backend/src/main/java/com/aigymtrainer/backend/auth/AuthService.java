@@ -3,6 +3,7 @@ package com.aigymtrainer.backend.auth;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.AuthTokens;
@@ -42,6 +43,7 @@ public class AuthService {
     }
 
     // REGISTER
+    @Transactional
     public AuthResult register(UserRegistrationDto userDto) {
 
         if (userRepository.existsByEmail(userDto.getEmail())) {
@@ -56,7 +58,7 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // Send OTP
+        // Send OTP - must succeed for registration to complete
         otpService.generateOtp(savedUser.getEmail());
 
         // Do not generate tokens yet, user needs to verify OTP first
