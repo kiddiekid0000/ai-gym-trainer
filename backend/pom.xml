@@ -112,6 +112,12 @@
     		<groupId>io.lettuce</groupId>
     		<artifactId>lettuce-core</artifactId>
 		</dependency>
+
+		<!-- Spring Mail for email sending -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

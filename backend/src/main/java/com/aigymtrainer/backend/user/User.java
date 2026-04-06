@@ -27,6 +27,13 @@ public class User {
     @Column(nullable = false, columnDefinition = "varchar(255) default 'USER'")
     private Role role = Role.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'ACTIVE'")
+    private Status status = Status.ACTIVE;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean verified = false;
+
     //Getter / Setter 
 
     public Long getId() {
@@ -55,5 +62,21 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

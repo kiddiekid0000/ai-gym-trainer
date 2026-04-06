@@ -9,6 +9,7 @@ import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
 import com.aigymtrainer.backend.config.JwtService;
 import com.aigymtrainer.backend.user.Role;
+import com.aigymtrainer.backend.user.Status;
 import com.aigymtrainer.backend.user.User;
 import com.aigymtrainer.backend.user.UserRepository;
 import com.aigymtrainer.backend.user.dto.UserRegistrationDto;
@@ -20,6 +21,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final TokenService tokenService;
+    private final OtpService otpService;
 
     @Value("${admin.email}")
     private String adminEmail;
@@ -30,11 +32,13 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       TokenService tokenService) {
+                       TokenService tokenService,
+                       OtpService otpService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.tokenService = tokenService;
+        this.otpService = otpService;
     }
 
     // REGISTER
@@ -48,16 +52,15 @@ public class AuthService {
         user.setEmail(userDto.getEmail());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setRole(Role.USER); // Default role for registered users
+        user.setVerified(false); // Not verified yet
 
         User savedUser = userRepository.save(user);
 
-        String accessToken = jwtService.generateAccessToken(savedUser.getEmail());
-        String refreshToken = jwtService.generateRefreshToken(savedUser.getEmail());
-        
-        // Store refresh token in Redis
-        tokenService.storeRefreshToken(savedUser.getEmail(), refreshToken);
+        // Send OTP
+        otpService.generateOtp(savedUser.getEmail());
 
-        return new AuthResult(new AuthTokens(accessToken, refreshToken), savedUser);
+        // Do not generate tokens yet, user needs to verify OTP first
+        return new AuthResult(null, savedUser);
     }
 
     // LOGIN
@@ -87,6 +90,14 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
+        if (!user.isVerified()) {
+            throw new RuntimeException("Account not verified. Please verify your email with OTP first.");
+        }
+
+        if (user.getStatus() == Status.SUSPENDED) {
+            throw new RuntimeException("Account is suspended.");
+        }
+
         // Ensure role is set for existing users
         if (user.getRole() == null) {
             user.setRole(Role.USER);
@@ -100,5 +111,28 @@ public class AuthService {
         tokenService.storeRefreshToken(user.getEmail(), refreshToken);
 
         return new AuthResult(new AuthTokens(accessToken, refreshToken), user);
+    }
+
+    public void verifyOtp(String email, String otp) {
+        if (otpService.isBlocked(email)) {
+            throw new RuntimeException("Too many failed OTP attempts. Try again later.");
+        }
+
+        if (!otpService.verifyOtp(email, otp)) {
+            otpService.incrementFailedAttempts(email);
+            throw new RuntimeException("Invalid OTP");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setVerified(true);
+        userRepository.save(user);
+        otpService.resetFailedAttempts(email);
+    }
+
+    public void sendOtp(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        otpService.generateOtp(email);
     }
 }

@@ -1,9 +1,10 @@
 package com.aigymtrainer.backend.config;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,28 +18,34 @@ import jakarta.servlet.http.HttpServletResponse;
 @Order(1)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Long> windowStartTimes = new ConcurrentHashMap<>();
-    private static final int MAX_REQUESTS = 10;
-    private static final long WINDOW_SIZE_MS = 60 * 1000; // 1 minute
+    private static final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
+
+    private final RateLimitService rateLimitService;
+
+    public RateLimitFilter(RateLimitService rateLimitService) {
+        this.rateLimitService = rateLimitService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String clientIP = getClientIP(request);
-        long currentTime = System.currentTimeMillis();
+        String requestURI = request.getRequestURI();
 
-        windowStartTimes.compute(clientIP, (key, startTime) -> {
-            if (startTime == null || currentTime - startTime > WINDOW_SIZE_MS) {
-                requestCounts.put(key, new AtomicInteger(0));
-                return currentTime;
-            }
-            return startTime;
-        });
+        int maxRequests;
+        Duration window = Duration.ofMinutes(1);
 
-        AtomicInteger count = requestCounts.computeIfAbsent(clientIP, k -> new AtomicInteger(0));
-        if (count.incrementAndGet() > MAX_REQUESTS) {
+        if (requestURI.startsWith("/auth/")) {
+            maxRequests = 5; // Lower limit for auth endpoints
+        } else {
+            maxRequests = 100; // General limit
+        }
+
+        boolean allowed = rateLimitService.isAllowed(clientIP, maxRequests, window);
+
+        if (!allowed) {
+            logger.warn("Rate limit exceeded for IP: {}, URI: {}", clientIP, requestURI);
             response.setStatus(429);
             response.getWriter().write("Too many requests");
             return;

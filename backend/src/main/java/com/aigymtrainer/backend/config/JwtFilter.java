@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.aigymtrainer.backend.auth.TokenService;
+import com.aigymtrainer.backend.user.Status;
+import com.aigymtrainer.backend.user.User;
+import com.aigymtrainer.backend.user.UserRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,13 +28,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     @Value("${admin.email}")
     private String adminEmail;
 
-    public JwtFilter(JwtService jwtService, TokenService tokenService) {
+    public JwtFilter(JwtService jwtService, TokenService tokenService, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.tokenService = tokenService;
+        this.userRepository = userRepository;
     }
     
     @Override
@@ -75,12 +80,29 @@ public class JwtFilter extends OncePerRequestFilter {
                     return;
                 }
                 
-                // Determine role: admin if email matches, else user
-                String role = email.equals(adminEmail) ? "ROLE_ADMIN" : "ROLE_USER";
+                User user = null;
+                if (email.equals(adminEmail)) {
+                    // Admin user
+                    user = new User();
+                    user.setEmail(adminEmail);
+                    user.setRole(com.aigymtrainer.backend.user.Role.ADMIN);
+                    user.setStatus(Status.ACTIVE);
+                } else {
+                    // Regular user
+                    user = userRepository.findByEmail(email).orElse(null);
+                    if (user == null || user.getStatus() == Status.SUSPENDED) {
+                        // User not found or suspended
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                }
+
+                // Determine role
+                String role = "ROLE_" + user.getRole().name();
                 var authorities = List.of(new SimpleGrantedAuthority(role));
 
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+                        new UsernamePasswordAuthenticationToken(user, null, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }

@@ -12,6 +12,7 @@ import com.aigymtrainer.backend.auth.dto.AuthResponse;
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
+import com.aigymtrainer.backend.auth.dto.OtpRequest;
 import com.aigymtrainer.backend.config.JwtService;
 import com.aigymtrainer.backend.user.User;
 import com.aigymtrainer.backend.user.UserRepository;
@@ -33,18 +34,20 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final OtpService otpService;
 
-    public AuthController(AuthService authService, JwtService jwtService, UserRepository userRepository, TokenService tokenService) {
+    public AuthController(AuthService authService, JwtService jwtService, UserRepository userRepository, TokenService tokenService, OtpService otpService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
+        this.otpService = otpService;
     }
 
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody UserRegistrationDto userDto, HttpServletResponse response) { 
         AuthResult result = authService.register(userDto);
-        setAuthCookies(response, result.tokens());
+        // No tokens for unverified user
         return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name());
     }
 
@@ -53,6 +56,25 @@ public class AuthController {
         AuthResult result = authService.login(request);
         setAuthCookies(response, result.tokens());
         return new AuthResponse(result.user().getId(), result.user().getEmail(), result.user().getRole().name());
+    }
+
+    @PostMapping("/send-otp")
+    public AuthResponse sendOtp(@RequestBody OtpRequest request) {
+        authService.sendOtp(request.email());
+        return new AuthResponse(null, request.email(), null);
+    }
+
+    @PostMapping("/verify-otp")
+    public AuthResponse verifyOtp(@Valid @RequestBody OtpRequest request, HttpServletResponse response) {
+        authService.verifyOtp(request.email(), request.otp());
+        // After verification, allow login
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String accessToken = jwtService.generateAccessToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        tokenService.storeRefreshToken(user.getEmail(), refreshToken);
+        setAuthCookies(response, new AuthTokens(accessToken, refreshToken));
+        return new AuthResponse(user.getId(), user.getEmail(), user.getRole().name());
     }
 
     @PostMapping("/logout")
