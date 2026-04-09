@@ -31,12 +31,12 @@ public class TokenService {
     public void storeRefreshToken(String userEmail, String token) {
         try {
             String key = REFRESH_TOKEN_PREFIX + userEmail;
-            logger.info("Storing refresh token in Redis for user: {}", userEmail);
+            logger.debug("Storing refresh token in Redis");
             redisTemplate.opsForValue().set(key, token, REFRESH_TOKEN_TTL, REFRESH_TOKEN_TTL_UNIT);
-            logger.info("Successfully stored refresh token for user: {} with TTL: {} {}", 
-                userEmail, REFRESH_TOKEN_TTL, REFRESH_TOKEN_TTL_UNIT);
+            logger.debug("Successfully stored refresh token with TTL: {} {}", 
+                REFRESH_TOKEN_TTL, REFRESH_TOKEN_TTL_UNIT);
         } catch (Exception e) {
-            logger.error("Error storing refresh token in Redis for user: {}", userEmail, e);
+            logger.error("Error storing refresh token in Redis", e);
             throw new RuntimeException("Error storing refresh token in Redis: " + e.getMessage(), e);
         }
     }
@@ -80,27 +80,23 @@ public class TokenService {
     public void deleteRefreshToken(String userEmail) {
         try {
             String key = REFRESH_TOKEN_PREFIX + userEmail;
-            logger.info("Attempting to delete token from Redis with key: {}", key);
+            logger.debug("Attempting to delete token from Redis");
             
             // Check if key exists before deletion
             Boolean exists = redisTemplate.hasKey(key);
-            logger.info("Token exists in Redis before deletion: {}", exists);
+            logger.debug("Checking token existence in Redis");
             
             if (Boolean.TRUE.equals(exists)) {
                 Boolean deleted = redisTemplate.delete(key);
-                logger.info("Token deletion result: {}", deleted);
+                logger.debug("Token deletion completed");
                 
                 if (Boolean.TRUE.equals(deleted)) {
-                    logger.info("Successfully deleted refresh token for user: {}", userEmail);
-                    
-                    // Verify deletion
-                    Boolean stillExists = redisTemplate.hasKey(key);
-                    logger.info("Token still exists after deletion: {}", stillExists);
+                    logger.debug("Token successfully removed from Redis");
                 } else {
-                    logger.warn("Failed to delete token for user: {}", userEmail);
+                    logger.warn("Failed to delete token from Redis");
                 }
             } else {
-                logger.warn("Token does not exist in Redis for user: {}", userEmail);
+                logger.warn("Token does not exist in Redis");
             }
         } catch (Exception e) {
             throw new RuntimeException("Error deleting refresh token from Redis: " + e.getMessage(), e);

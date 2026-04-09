@@ -83,22 +83,22 @@ public class AuthController {
         
         if (refreshToken != null && !refreshToken.isEmpty()) {
             try {
-                logger.info("Attempting to extract email from refresh token");
+                logger.debug("Validating token for logout request");
                 String email = jwtService.extractEmail(refreshToken);
-                logger.info("Email extracted: {}", email);
+                logger.debug("Token validation successful");
                 
-                logger.info("Deleting refresh token from Redis for email: {}", email);
+                logger.debug("Removing token from Redis cache");
                 tokenService.deleteRefreshToken(email);
-                logger.info("Token successfully deleted from Redis for email: {}", email);
+                logger.debug("Token cache entry removed");
             } catch (Exception e) {
-                logger.error("Error extracting email or deleting from Redis", e);
+                logger.error("Error processing logout request", e);
             }
         } else {
-            logger.warn("Refresh token not found in cookies");
+            logger.warn("Logout attempted without valid refresh token");
         }
         
         // Clear cookies on client side
-        logger.info("Clearing authentication cookies");
+        logger.debug("Clearing authentication cookies");
         clearAuthCookies(response);
         logger.info("Logout completed successfully");
         
@@ -110,21 +110,18 @@ public class AuthController {
      */
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) {
-            logger.warn("No cookies found in request");
+            logger.debug("No cookies found in request");
             return null;
         }
         
         for (Cookie cookie : request.getCookies()) {
             if ("refreshToken".equals(cookie.getName())) {
-                logger.debug("Refresh token found in cookies");
+                logger.debug("Refresh token cookie located");
                 return cookie.getValue();
             }
         }
         
-        logger.warn("Refresh token cookie not found. Available cookies: {}", 
-            java.util.Arrays.stream(request.getCookies())
-                .map(Cookie::getName)
-                .toList());
+        logger.debug("Refresh token not found in request cookies");
         return null;
     }
 
@@ -149,9 +146,9 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Create new token
-        String newAccessToken = jwtService.generateAccessToken(email);
-        String newRefreshToken = jwtService.generateRefreshToken(email);
+        // Create new token with role
+        String newAccessToken = jwtService.generateAccessToken(email, user.getRole().name());
+        String newRefreshToken = jwtService.generateRefreshToken(email, user.getRole().name());
         
         // Store new refresh token in Redis
         tokenService.storeRefreshToken(email, newRefreshToken);

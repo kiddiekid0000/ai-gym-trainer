@@ -37,7 +37,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Duration window = Duration.ofMinutes(1);
 
         if (requestURI.startsWith("/auth/")) {
-            maxRequests = 5; // Lower limit for auth endpoints
+            maxRequests = 10; // Lower limit for auth endpoints
         } else {
             maxRequests = 100; // General limit
         }
