@@ -75,8 +75,8 @@ public class AuthService {
             adminUser.setRole(Role.ADMIN);
             // No ID for admin
 
-            String accessToken = jwtService.generateAccessToken(adminEmail);
-            String refreshToken = jwtService.generateRefreshToken(adminEmail);
+            String accessToken = jwtService.generateAccessToken(adminEmail, Role.ADMIN.name());
+            String refreshToken = jwtService.generateRefreshToken(adminEmail, Role.ADMIN.name());
             
             // Store refresh token in Redis
             tokenService.storeRefreshToken(adminEmail, refreshToken);
@@ -106,8 +106,8 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        String accessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), user.getRole().name());
         
         // Store refresh token in Redis
         tokenService.storeRefreshToken(user.getEmail(), refreshToken);

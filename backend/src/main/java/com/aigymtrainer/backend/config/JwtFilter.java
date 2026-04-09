@@ -3,7 +3,6 @@ package com.aigymtrainer.backend.config;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,9 +11,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.aigymtrainer.backend.auth.TokenService;
+import com.aigymtrainer.backend.user.Role;
 import com.aigymtrainer.backend.user.Status;
 import com.aigymtrainer.backend.user.User;
-import com.aigymtrainer.backend.user.UserRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,15 +27,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final TokenService tokenService;
-    private final UserRepository userRepository;
 
-    @Value("${admin.email}")
-    private String adminEmail;
-
-    public JwtFilter(JwtService jwtService, TokenService tokenService, UserRepository userRepository) {
+    public JwtFilter(JwtService jwtService, TokenService tokenService) {
         this.jwtService = jwtService;
         this.tokenService = tokenService;
-        this.userRepository = userRepository;
     }
     
     @Override
@@ -69,8 +63,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
         try {
             String email = jwtService.extractEmail(token);
+            String role = jwtService.extractRole(token);
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (email != null && role != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 
                 // Check if user has a valid session in Redis (user hasn't logged out)
                 // If no refresh token exists in Redis, the user has been logged out
@@ -80,26 +75,23 @@ public class JwtFilter extends OncePerRequestFilter {
                     return;
                 }
                 
-                User user = null;
-                if (email.equals(adminEmail)) {
-                    // Admin user
+                User user;
+                if (role.equals(Role.ADMIN.name())) {
+                    // Admin user - create dynamic user object
                     user = new User();
-                    user.setEmail(adminEmail);
-                    user.setRole(com.aigymtrainer.backend.user.Role.ADMIN);
+                    user.setEmail(email);
+                    user.setRole(Role.ADMIN);
                     user.setStatus(Status.ACTIVE);
                 } else {
-                    // Regular user
-                    user = userRepository.findByEmail(email).orElse(null);
-                    if (user == null || user.getStatus() == Status.SUSPENDED) {
-                        // User not found or suspended
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
+                    // Regular user - create user object with role from JWT
+                    user = new User();
+                    user.setEmail(email);
+                    user.setRole(Role.USER);
+                    user.setStatus(Status.ACTIVE);
                 }
 
-                // Determine role
-                String role = "ROLE_" + user.getRole().name();
-                var authorities = List.of(new SimpleGrantedAuthority(role));
+                // Determine role from JWT claim
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(user, null, authorities);

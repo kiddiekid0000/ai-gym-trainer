@@ -19,9 +19,10 @@ public class JwtService {
     private static final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7 days
 
     // Create access token
-    public String generateAccessToken(String email) {
+    public String generateAccessToken(String email, String role) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
                 .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -29,9 +30,10 @@ public class JwtService {
     }
 
     // Create refresh token
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String email, String role) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
                 .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -41,6 +43,11 @@ public class JwtService {
     // extract email from token
     public String extractEmail(String token) {
         return getClaims(token).getSubject();
+    }
+
+    // extract role from token
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
     }
 
     // Check if token is expired
