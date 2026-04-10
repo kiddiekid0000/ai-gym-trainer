@@ -80,6 +80,7 @@ public class AuthController {
         
         // Manually extract refresh token from cookies (works with CORS)
         String refreshToken = extractRefreshTokenFromCookie(request);
+        String accessToken = extractAccessTokenFromCookie(request);
         
         if (refreshToken != null && !refreshToken.isEmpty()) {
             try {
@@ -95,6 +96,19 @@ public class AuthController {
             }
         } else {
             logger.warn("Logout attempted without valid refresh token");
+        }
+
+        // Blacklist the access token if it exists
+        if (accessToken != null && !accessToken.isEmpty()) {
+            try {
+                logger.debug("Blacklisting access token");
+                long expirationTime = jwtService.getTokenExpirationTime(accessToken);
+                tokenService.blacklistToken(accessToken, expirationTime);
+                logger.debug("Access token successfully blacklisted");
+            } catch (Exception e) {
+                logger.error("Error blacklisting access token", e);
+                // Don't throw exception - logout should succeed even if blacklist fails
+            }
         }
         
         // Clear cookies on client side
@@ -122,6 +136,26 @@ public class AuthController {
         }
         
         logger.debug("Refresh token not found in request cookies");
+        return null;
+    }
+
+    /**
+     * Manually extract access token from cookies (CORS compatible)
+     */
+    private String extractAccessTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            logger.debug("No cookies found in request");
+            return null;
+        }
+        
+        for (Cookie cookie : request.getCookies()) {
+            if ("accessToken".equals(cookie.getName())) {
+                logger.debug("Access token cookie located");
+                return cookie.getValue();
+            }
+        }
+        
+        logger.debug("Access token not found in request cookies");
         return null;
     }
 

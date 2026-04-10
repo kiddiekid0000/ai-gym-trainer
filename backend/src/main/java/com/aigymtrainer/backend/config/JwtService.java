@@ -55,6 +55,11 @@ public class JwtService {
         return getClaims(token).getExpiration().before(new Date());
     }
 
+    // Get token expiration time in milliseconds
+    public long getTokenExpirationTime(String token) {
+        return getClaims(token).getExpiration().getTime();
+    }
+
     // Validate token
     public boolean validateToken(String token, String email) {
         return email.equals(extractEmail(token)) && !isTokenExpired(token);

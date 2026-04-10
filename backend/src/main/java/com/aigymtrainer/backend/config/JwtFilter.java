@@ -61,6 +61,15 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Check if token is blacklisted before processing
+        if (tokenService.isTokenBlacklisted(token)) {
+            // Token has been revoked, reject immediately
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Token has been revoked. Please login again.\"}");
+            return;
+        }
+
         try {
             String email = jwtService.extractEmail(token);
             String role = jwtService.extractRole(token);

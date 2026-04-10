@@ -17,6 +17,7 @@ public class TokenService {
     private static final long REFRESH_TOKEN_TTL = 7; // 7 days
     private static final TimeUnit REFRESH_TOKEN_TTL_UNIT = TimeUnit.DAYS;
     private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
+    private static final String BLACKLIST_PREFIX = "blacklist:";
 
     public TokenService(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -115,6 +116,50 @@ public class TokenService {
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
         } catch (Exception e) {
             throw new RuntimeException("Error checking token existence: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Blacklist an access token with TTL equal to remaining token validity
+     * 
+     * @param token the access token to blacklist
+     * @param expirationTime the token's expiration time (in milliseconds)
+     */
+    public void blacklistToken(String token, long expirationTime) {
+        try {
+            String key = BLACKLIST_PREFIX + token;
+            
+            // Calculate remaining TTL in seconds
+            long currentTime = System.currentTimeMillis();
+            long remainingTtlSeconds = (expirationTime - currentTime) / 1000;
+            
+            // Only blacklist if token still has remaining validity
+            if (remainingTtlSeconds > 0) {
+                logger.debug("Blacklisting token with TTL: {} seconds", remainingTtlSeconds);
+                redisTemplate.opsForValue().set(key, "revoked", remainingTtlSeconds, TimeUnit.SECONDS);
+                logger.debug("Token successfully blacklisted in Redis");
+            } else {
+                logger.debug("Token already expired, no need to blacklist");
+            }
+        } catch (Exception e) {
+            logger.error("Error blacklisting token in Redis", e);
+            throw new RuntimeException("Error blacklisting token in Redis: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Check if a token is blacklisted
+     * 
+     * @param token the token to check
+     * @return true if the token is blacklisted, false otherwise
+     */
+    public boolean isTokenBlacklisted(String token) {
+        try {
+            String key = BLACKLIST_PREFIX + token;
+            return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        } catch (Exception e) {
+            logger.error("Error checking if token is blacklisted", e);
+            throw new RuntimeException("Error checking token blacklist status: " + e.getMessage(), e);
         }
     }
 }
