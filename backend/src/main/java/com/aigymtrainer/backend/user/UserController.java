@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aigymtrainer.backend.user.dto.UserResponseDto;
+
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -33,8 +35,8 @@ public class UserController {
 
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public List<UserResponseDto> getAllUsers() {
+        return userService.getAllUsersAsDto();
     }
 
     @PostMapping("/{id}/suspend")

@@ -1,8 +1,11 @@
 package com.aigymtrainer.backend.user;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+
+import com.aigymtrainer.backend.user.dto.UserResponseDto;
 
 @Service
 public class UserService {
@@ -23,6 +26,18 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public List<UserResponseDto> getAllUsersAsDto() {
+        return getAllUsers().stream()
+                .map(user -> new UserResponseDto(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.getStatus(),
+                        user.isVerified()
+                ))
+                .collect(Collectors.toList());
     }
 
     public void suspendUser(Long id) {
