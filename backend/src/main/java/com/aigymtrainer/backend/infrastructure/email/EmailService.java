@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.config;
+package com.aigymtrainer.backend.infrastructure.email;
 
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;

@@ -1,0 +1,44 @@
+package com.aigymtrainer.backend.security.ratelimit;
+
+import java.io.IOException;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@Component
+public class UserRateLimitFilter extends OncePerRequestFilter {
+
+    private final RateLimitService rateLimitService;
+
+    public UserRateLimitFilter(RateLimitService rateLimitService) {
+        this.rateLimitService = rateLimitService;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        
+        // Check if user is authenticated
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication != null && authentication.isAuthenticated()) {
+            String email = authentication.getName();
+            
+            if (rateLimitService.isUserRateLimited(email)) {
+                response.setStatus(429); // Too Many Requests
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"You have exceeded the rate limit. Please try again later.\"}");
+                return;
+            }
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+}

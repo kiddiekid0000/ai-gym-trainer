@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.config;
+package com.aigymtrainer.backend.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

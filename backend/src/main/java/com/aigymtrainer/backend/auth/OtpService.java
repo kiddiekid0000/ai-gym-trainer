@@ -6,7 +6,7 @@ import java.time.Duration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.aigymtrainer.backend.config.EmailService;
+import com.aigymtrainer.backend.infrastructure.email.EmailService;
 
 @Service
 public class OtpService {

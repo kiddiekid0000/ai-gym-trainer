@@ -1,5 +1,7 @@
 package com.aigymtrainer.backend.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -8,7 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.AuthTokens;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
-import com.aigymtrainer.backend.config.JwtService;
+import com.aigymtrainer.backend.exception.InvalidRefreshTokenException;
+import com.aigymtrainer.backend.exception.TokenBlacklistException;
+import com.aigymtrainer.backend.exception.TokenRevokedException;
+import com.aigymtrainer.backend.exception.UserNotFoundException;
+import com.aigymtrainer.backend.security.jwt.JwtService;
 import com.aigymtrainer.backend.user.Role;
 import com.aigymtrainer.backend.user.Status;
 import com.aigymtrainer.backend.user.User;
@@ -17,6 +23,8 @@ import com.aigymtrainer.backend.user.dto.UserRegistrationDto;
 
 @Service
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -136,5 +144,78 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         otpService.generateOtp(email);
+    }
+
+    // GET USER BY EMAIL (avoid direct repo access in controller)
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    // REFRESH TOKEN LOGIC
+    // Returns AuthResult containing both tokens AND user info from a single DB call
+    public AuthResult refreshAccessToken(String refreshToken) {
+        logger.debug("Validating refresh token");
+        
+        // Check JWT expiration
+        if (refreshToken == null || jwtService.isTokenExpired(refreshToken)) {
+            throw new InvalidRefreshTokenException("Invalid or expired refresh token");
+        }
+
+        String email = jwtService.extractEmail(refreshToken);
+        logger.debug("Extracted email from refresh token: {}", email);
+
+        // Check if refresh token exists in Redis (user hasn't logged out)
+        if (!tokenService.isTokenValid(email, refreshToken)) {
+            throw new TokenRevokedException("Refresh token has been revoked. Please login again.");
+        }
+
+        logger.debug("Refresh token validated in Redis");
+
+        // Fetch user to get role (single database hit)
+        User user = getUserByEmail(email);
+
+        // Generate new tokens
+        String newAccessToken = jwtService.generateAccessToken(email, user.getRole().name());
+        String newRefreshToken = jwtService.generateRefreshToken(email, user.getRole().name());
+
+        // Store new refresh token in Redis
+        tokenService.storeRefreshToken(email, newRefreshToken);
+        logger.debug("New refresh token stored in Redis");
+
+        // Return both tokens and user info in a single object
+        return new AuthResult(new AuthTokens(newAccessToken, newRefreshToken), user);
+    }
+
+    // LOGOUT LOGIC - Security-first (throws exceptions if token revocation fails)
+    // Ensures that after logout, attacker CANNOT use old tokens since they're revoked/blacklisted
+    public void logout(String refreshToken, String accessToken) {
+        logger.info("Processing logout request");
+
+        // Revoke refresh token in Redis - REQUIRED for security
+        // If this fails, exception is thrown and logout fails - tokens stay valid until Redis recovers
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            logger.debug("Validating token for logout request");
+            String email = jwtService.extractEmail(refreshToken);
+            logger.debug("Token validation successful, email: {}", email);
+
+            logger.debug("Removing refresh token from Redis cache");
+            tokenService.deleteRefreshToken(email);
+            logger.debug("Refresh token successfully revoked from Redis");
+        } else {
+            logger.warn("Logout attempted without valid refresh token");
+            throw new InvalidRefreshTokenException("Refresh token missing - logout failed");
+        }
+
+        // Blacklist access token - REQUIRED for security
+        // If this fails, exception is thrown and logout fails - attacker cannot use this token
+        if (accessToken != null && !accessToken.isEmpty()) {
+            logger.debug("Blacklisting access token");
+            long expirationTime = jwtService.getTokenExpirationTime(accessToken);
+            tokenService.blacklistToken(accessToken, expirationTime);
+            logger.debug("Access token successfully blacklisted");
+        }
+
+        logger.info("Logout completed successfully - tokens are revoked and blacklisted. Old tokens are now invalid.");
     }
 }

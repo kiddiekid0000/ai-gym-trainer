@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.config;
+package com.aigymtrainer.backend.security.jwt;
 
 import java.util.Date;
 
