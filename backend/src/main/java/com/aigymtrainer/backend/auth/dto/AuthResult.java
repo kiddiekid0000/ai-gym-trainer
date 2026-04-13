@@ -1,6 +1,5 @@
 package com.aigymtrainer.backend.auth.dto;
 
-import com.aigymtrainer.backend.user.User;
+import com.aigymtrainer.backend.user.domain.User;
 
-public record AuthResult(AuthTokens tokens, User user) {
-}
+public record AuthResult(AuthTokens tokens, User user) {}

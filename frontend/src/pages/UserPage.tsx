@@ -5,8 +5,16 @@ import { API_BASE_URL } from '../config/urlConfig';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import './UserPage.css';
 
+interface UserProfile {
+  id: number;
+  email: string;
+  role: 'USER' | 'ADMIN';
+  verified: boolean;
+  status: string;
+}
+
 const UserPage = () => {
-  const [profileData, setProfileData] = useState('');
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -34,52 +42,28 @@ const UserPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-  };
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!profileData) return <div>No profile data</div>;
 
   return (
-    <div className="user-container">
-      <nav className="user-nav">
-        <h1>User Dashboard</h1>
-        <button onClick={handleLogout} className="logout-btn">
-          Logout
-        </button>
-      </nav>
+    <div style={{ padding: '20px' }}>
+      <h1>User Profile</h1>
       
-      <main className="user-main">
-        <div className="profile-card">
-          <h2>Your Profile</h2>
-          <p>{profileData}</p>
-        </div>
+      <div style={{ marginTop: '20px', border: '1px solid #ccc', padding: '15px' }}>
+        <p><strong>ID:</strong> {profileData.id}</p>
+        <p><strong>Email:</strong> {profileData.email}</p>
+        <p><strong>Role:</strong> {profileData.role}</p>
+        <p><strong>Verified:</strong> {profileData.verified ? '✓ Yes' : '✗ No'}</p>
+        <p><strong>Status:</strong> {profileData.status}</p>
+      </div>
 
-        <div className="user-stats">
-          <div className="stat-card">
-            <h3>Workouts Completed</h3>
-            <p>0</p>
-          </div>
-          <div className="stat-card">
-            <h3>Total Minutes</h3>
-            <p>0</p>
-          </div>
-          <div className="stat-card">
-            <h3>Current Streak</h3>
-            <p>0 days</p>
-          </div>
-        </div>
-
-        <div className="quick-actions">
-          <h2>Quick Actions</h2>
-          <div className="actions-grid">
-            <button className="action-btn">Start Workout</button>
-            <button className="action-btn">View History</button>
-            <button className="action-btn">Update Profile</button>
-          </div>
-        </div>
-      </main>
+      <button 
+        onClick={logout}
+        style={{ marginTop: '20px', padding: '10px 20px' }}
+      >
+        Logout
+      </button>
     </div>
   );
 };

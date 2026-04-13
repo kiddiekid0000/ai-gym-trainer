@@ -1,27 +1,20 @@
-package com.aigymtrainer.backend.auth.dto;
+package com.aigymtrainer.backend.user.dto;
 
-public class AuthResponse {
+public class AdminDataDto {
     private Long id;
     private String email;
     private String role;
     private String status;
-    private String message;
+    private boolean verified;
 
-    public AuthResponse() {}
+    public AdminDataDto() {}
 
-    public AuthResponse(Long id, String email, String role, String status) {
+    public AdminDataDto(Long id, String email, String role, String status, boolean verified) {
         this.id = id;
         this.email = email;
         this.role = role;
         this.status = status;
-    }
-
-    public AuthResponse(Long id, String email, String role, String status, String message) {
-        this.id = id;
-        this.email = email;
-        this.role = role;
-        this.status = status;
-        this.message = message;
+        this.verified = verified;
     }
 
     public Long getId() {
@@ -56,11 +49,11 @@ public class AuthResponse {
         this.status = status;
     }
 
-    public String getMessage() {
-        return message;
+    public boolean isVerified() {
+        return verified;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

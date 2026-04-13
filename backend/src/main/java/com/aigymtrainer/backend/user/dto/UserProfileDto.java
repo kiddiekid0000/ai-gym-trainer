@@ -1,20 +1,20 @@
 package com.aigymtrainer.backend.user.dto;
 
-public class UserResponseDto {
+public class UserProfileDto {
     private Long id;
     private String email;
     private String role;
-    private String status;
     private boolean verified;
+    private String status;
 
-    public UserResponseDto() {}
+    public UserProfileDto() {}
 
-    public UserResponseDto(Long id, String email, String role, String status, boolean verified) {
+    public UserProfileDto(Long id, String email, String role, boolean verified, String status) {
         this.id = id;
         this.email = email;
         this.role = role;
-        this.status = status;
         this.verified = verified;
+        this.status = status;
     }
 
     public Long getId() {
@@ -41,19 +41,19 @@ public class UserResponseDto {
         this.role = role;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public boolean isVerified() {
         return verified;
     }
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

@@ -5,24 +5,22 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class UserRegistrationDto {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
+    
+    @Email(message = "Email should be valid")
+    @NotBlank(message = "Email cannot be blank")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    // Default constructor
     public UserRegistrationDto() {}
 
-    // Constructor
     public UserRegistrationDto(String email, String password) {
         this.email = email;
         this.password = password;
     }
 
-    // Getters and setters
     public String getEmail() {
         return email;
     }
