@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.common.exception;
+package com.aigymtrainer.backend.exception;
 
 public class OtpBlockedException extends BaseException {
     public OtpBlockedException(String email) {

@@ -14,11 +14,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.aigymtrainer.backend.security.jwt.JwtFilter;
-import com.aigymtrainer.backend.security.ratelimit.RateLimitFilter;
-import com.aigymtrainer.backend.security.ratelimit.UserRateLimitFilter;
+import com.aigymtrainer.backend.security.filter.JwtFilter;
+import com.aigymtrainer.backend.security.filter.RateLimitFilter;
+import com.aigymtrainer.backend.security.filter.UserRateLimitFilter;
+import com.aigymtrainer.backend.security.filter.SecurityHeadersFilter;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 public class SecurityConfig {
 

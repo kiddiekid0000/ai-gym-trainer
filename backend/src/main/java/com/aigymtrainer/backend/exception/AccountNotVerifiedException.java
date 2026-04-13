@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.common.exception;
+package com.aigymtrainer.backend.exception;
 
 public class AccountNotVerifiedException extends BaseException {
     public AccountNotVerifiedException(String email) {

@@ -1,9 +1,11 @@
-package com.aigymtrainer.backend.security.ratelimit;
+package com.aigymtrainer.backend.security.filter;
 
 import java.io.IOException;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.aigymtrainer.backend.security.service.RateLimitService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

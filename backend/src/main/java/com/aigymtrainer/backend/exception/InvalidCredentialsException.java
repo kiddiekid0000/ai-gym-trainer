@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.common.exception;
+package com.aigymtrainer.backend.exception;
 
 public class InvalidCredentialsException extends BaseException {
     public InvalidCredentialsException(String message) {

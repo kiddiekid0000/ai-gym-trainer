@@ -7,7 +7,7 @@ import com.aigymtrainer.backend.auth.dto.OtpRequest;
 import com.aigymtrainer.backend.auth.service.AuthenticationService;
 import com.aigymtrainer.backend.auth.service.OtpVerificationService;
 import com.aigymtrainer.backend.auth.service.RegistrationService;
-import com.aigymtrainer.backend.auth.service.TokenManagementService;
+import com.aigymtrainer.backend.auth.service.TokenService;
 import com.aigymtrainer.backend.user.dto.UserRegistrationDto;
 import com.aigymtrainer.backend.user.domain.User;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +27,7 @@ public class AuthController {
     private final AuthenticationService authenticationService;
     private final RegistrationService registrationService;
     private final OtpVerificationService otpVerificationService;
-    private final TokenManagementService tokenManagementService;
+    private final TokenService tokenService;
 
     @Value("${app.environment:development}")
     private String environment;
@@ -35,16 +35,16 @@ public class AuthController {
     public AuthController(AuthenticationService authenticationService,
                          RegistrationService registrationService,
                          OtpVerificationService otpVerificationService,
-                         TokenManagementService tokenManagementService) {
+                         TokenService tokenService) {
         this.authenticationService = authenticationService;
         this.registrationService = registrationService;
         this.otpVerificationService = otpVerificationService;
-        this.tokenManagementService = tokenManagementService;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody UserRegistrationDto userDto, HttpServletResponse response) {
-        logger.info("Register request for email: {}", userDto.getEmail());
+        logger.info("Register request for email: {}", userDto.email());
         
         AuthResult result = registrationService.register(userDto);
         User user = result.user();
@@ -55,37 +55,37 @@ public class AuthController {
 
     @PostMapping("/send-otp")
     public AuthResponse sendOtp(@Valid @RequestBody OtpRequest request) {
-        logger.info("Send OTP request for email: {}", request.getEmail());
+        logger.info("Send OTP request for email: {}", request.email());
         
-        otpVerificationService.sendOtp(request.getEmail());
-        return new AuthResponse(null, request.getEmail(), null, null, "OTP sent to your email");
+        otpVerificationService.sendOtp(request.email());
+        return new AuthResponse(null, request.email(), null, null, "OTP sent to your email");
     }
 
     @PostMapping("/verify-otp")
     public AuthResponse verifyOtp(@Valid @RequestBody OtpRequest request, HttpServletResponse response) {
-        logger.info("Verify OTP request for email: {}", request.getEmail());
+        logger.info("Verify OTP request for email: {}", request.email());
         
-        otpVerificationService.verifyOtp(request.getEmail(), request.getOtp());
-        return new AuthResponse(null, request.getEmail(), null, "VERIFIED", "Email verified successfully. You can now login.");
+        otpVerificationService.verifyOtp(request.email(), request.otp());
+        return new AuthResponse(null, request.email(), null, "VERIFIED", "Email verified successfully. You can now login.");
     }
 
     @PostMapping("/resend-otp")
     public AuthResponse resendOtp(@Valid @RequestBody OtpRequest request) {
-        logger.info("Resend OTP request for email: {}", request.getEmail());
+        logger.info("Resend OTP request for email: {}", request.email());
         
-        otpVerificationService.resendOtp(request.getEmail());
-        return new AuthResponse(null, request.getEmail(), null, null, "OTP resent to your email");
+        otpVerificationService.resendOtp(request.email());
+        return new AuthResponse(null, request.email(), null, null, "OTP resent to your email");
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        logger.info("Login request for email: {}", request.getEmail());
+        logger.info("Login request for email: {}", request.email());
         
         AuthResult result = authenticationService.authenticate(request);
         User user = result.user();
 
         if (result.tokens() != null) {
-            setAuthCookies(response, result.tokens().getAccessToken(), result.tokens().getRefreshToken());
+            setAuthCookies(response, result.tokens().accessToken(), result.tokens().refreshToken());
         }
 
         return new AuthResponse(user.getId(), user.getEmail(), user.getRole().name(), 
@@ -99,7 +99,7 @@ public class AuthController {
             HttpServletResponse response) {
         logger.info("Logout request");
 
-        tokenManagementService.logout(refreshToken, accessToken);
+        tokenService.logout(refreshToken, accessToken);
         clearAuthCookies(response);
 
         return new AuthResponse(null, null, null, null, "Logged out successfully");
@@ -111,11 +111,11 @@ public class AuthController {
             HttpServletResponse response) {
         logger.info("Refresh token request");
 
-        AuthResult result = tokenManagementService.refreshAccessToken(refreshToken);
+        AuthResult result = tokenService.refreshAccessToken(refreshToken);
         User user = result.user();
 
         if (result.tokens() != null) {
-            setAuthCookies(response, result.tokens().getAccessToken(), result.tokens().getRefreshToken());
+            setAuthCookies(response, result.tokens().accessToken(), result.tokens().refreshToken());
         }
 
         return new AuthResponse(user.getId(), user.getEmail(), user.getRole().name(), 

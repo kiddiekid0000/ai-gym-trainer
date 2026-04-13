@@ -1,18 +1,21 @@
-package com.aigymtrainer.backend.security.jwt;
+package com.aigymtrainer.backend.security.filter;
 
 import java.io.IOException;
 import java.util.Collections;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.aigymtrainer.backend.security.service.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -20,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
+    private static final String COOKIE_NAME = "accessToken";
 
     private final JwtService jwtService;
 
@@ -32,7 +36,7 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         
         // Extract JWT token from cookies
-        String token = TokenExtractor.extractTokenFromCookies(request);
+        String token = extractTokenFromCookies(request);
         
         if (token != null) {
             try {
@@ -63,5 +67,19 @@ public class JwtFilter extends OncePerRequestFilter {
         
         filterChain.doFilter(request, response);
     }
-}
 
+    private String extractTokenFromCookies(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        
+        for (Cookie cookie : cookies) {
+            if (COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        
+        return null;
+    }
+}

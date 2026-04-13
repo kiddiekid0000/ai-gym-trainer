@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.common.exception;
+package com.aigymtrainer.backend.exception;
 
 public class InvalidRefreshTokenException extends BaseException {
     public InvalidRefreshTokenException(String message) {

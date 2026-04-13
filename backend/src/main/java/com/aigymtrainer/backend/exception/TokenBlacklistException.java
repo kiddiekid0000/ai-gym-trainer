@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.common.exception;
+package com.aigymtrainer.backend.exception;
 
 public class TokenBlacklistException extends BaseException {
     public TokenBlacklistException(String message) {

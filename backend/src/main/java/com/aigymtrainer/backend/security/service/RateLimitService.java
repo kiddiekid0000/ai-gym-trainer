@@ -1,10 +1,11 @@
-package com.aigymtrainer.backend.security.ratelimit;
+package com.aigymtrainer.backend.security.service;
 
-import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
 
 @Service
 public class RateLimitService {

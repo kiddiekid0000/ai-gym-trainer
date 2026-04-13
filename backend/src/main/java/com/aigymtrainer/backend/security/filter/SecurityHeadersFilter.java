@@ -1,4 +1,4 @@
-package com.aigymtrainer.backend.security;
+package com.aigymtrainer.backend.security.filter;
 
 import java.io.IOException;
 

@@ -1,25 +1,25 @@
-package com.aigymtrainer.backend.auth.service.impl;
+package com.aigymtrainer.backend.auth.service;
 
-import com.aigymtrainer.backend.auth.dto.AuthResult;
-import com.aigymtrainer.backend.auth.service.TokenManagementService;
-import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
-import com.aigymtrainer.backend.common.exception.InvalidRefreshTokenException;
-import com.aigymtrainer.backend.common.exception.TokenRevokedException;
-import com.aigymtrainer.backend.security.jwt.JwtService;
-import com.aigymtrainer.backend.user.domain.User;
-import com.aigymtrainer.backend.user.repository.UserRepository;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.TimeUnit;
+import com.aigymtrainer.backend.auth.dto.AuthResult;
+import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
+import com.aigymtrainer.backend.exception.InvalidRefreshTokenException;
+import com.aigymtrainer.backend.exception.TokenRevokedException;
+import com.aigymtrainer.backend.security.service.JwtService;
+import com.aigymtrainer.backend.user.domain.User;
+import com.aigymtrainer.backend.user.repository.UserRepository;
 
 @Service
-public class TokenManagementServiceImpl implements TokenManagementService {
+public class TokenService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TokenManagementServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(TokenService.class);
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtService jwtService;
@@ -28,7 +28,7 @@ public class TokenManagementServiceImpl implements TokenManagementService {
     private static final long REFRESH_TOKEN_TTL = 7;
     private static final TimeUnit REFRESH_TOKEN_TTL_UNIT = TimeUnit.DAYS;
 
-    public TokenManagementServiceImpl(RedisTemplate<String, String> redisTemplate,
+    public TokenService(RedisTemplate<String, String> redisTemplate,
                                       JwtService jwtService,
                                       UserRepository userRepository) {
         this.redisTemplate = redisTemplate;
@@ -88,7 +88,7 @@ public class TokenManagementServiceImpl implements TokenManagementService {
         }
     }
 
-    @Override
+    @Transactional
     public AuthResult refreshAccessToken(String refreshToken) {
         logger.debug("Validating refresh token");
 
@@ -121,7 +121,6 @@ public class TokenManagementServiceImpl implements TokenManagementService {
         return new AuthResult(new com.aigymtrainer.backend.auth.dto.AuthTokens(newAccessToken, newRefreshToken), user);
     }
 
-    @Override
     @Transactional
     public void logout(String refreshToken, String accessToken) {
         logger.info("Processing logout request");
