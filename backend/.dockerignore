@@ -11,8 +11,6 @@ mvnw.cmd
 .idea
 *.log
 *.iml
-.env
-.env.local
 README.md
 HELP.md
 .flattened-pom.xml

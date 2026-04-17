@@ -3,12 +3,14 @@ package com.aigymtrainer.backend.user.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.aigymtrainer.backend.auth.service.TokenService;
 import com.aigymtrainer.backend.exception.UserNotFoundException;
+import com.aigymtrainer.backend.user.domain.Role;
 import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
 import com.aigymtrainer.backend.user.dto.UserDto;
@@ -23,6 +25,9 @@ public class UserService {
     private final TokenService tokenService;
     private final CacheManager cacheManager;
 
+    @Value("${admin.email}")
+    private String adminEmail;
+
     public UserService(UserRepository userRepository, UserMapper userMapper, TokenService tokenService, CacheManager cacheManager) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -35,6 +40,16 @@ public class UserService {
     }
 
     public User findByEmail(String email) {
+        // Handle admin user specially - admin doesn't exist in database
+        if (email.equals(adminEmail)) {
+            User adminUser = new User();
+            adminUser.setEmail(adminEmail);
+            adminUser.setRole(Role.ADMIN);
+            adminUser.setStatus(Status.ACTIVE);
+            adminUser.setVerified(true);
+            return adminUser;
+        }
+
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));
     }
