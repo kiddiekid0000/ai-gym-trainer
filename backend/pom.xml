@@ -47,6 +47,11 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 
+		<dependency>
+  			<groupId>org.springframework.boot</groupId>
+  			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Dotenv for loading .env files -->
 		<dependency>
 			<groupId>io.github.cdimascio</groupId>
@@ -107,6 +112,12 @@
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 
+		<!-- Spring Cache for user auth caching -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
 		<!-- Lettuce client for Redis -->
 		<dependency>
     		<groupId>io.lettuce</groupId>
@@ -152,6 +163,17 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+
+			<plugin>
+    			<groupId>org.springframework.boot</groupId>
+    			<artifactId>spring-boot-maven-plugin</artifactId>
+    			<configuration>
+        			<layers>
+            			<enabled>true</enabled>
+        			</layers>
+    			</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 

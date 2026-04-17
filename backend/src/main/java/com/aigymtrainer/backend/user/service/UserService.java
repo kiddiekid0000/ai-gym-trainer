@@ -6,6 +6,7 @@ import com.aigymtrainer.backend.user.domain.User;
 import com.aigymtrainer.backend.user.dto.UserDto;
 import com.aigymtrainer.backend.user.mapper.UserMapper;
 import com.aigymtrainer.backend.user.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,8 +49,18 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(value = "user_auth_cache", key = "#root.target.findById(#id).email")
     public void updateUserStatus(Long id, Status newStatus) {
         User user = findById(id);
+        String email = user.getEmail();
+        user.setStatus(newStatus);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @CacheEvict(value = "user_auth_cache", key = "#email")
+    public void updateUserStatusByEmail(String email, Status newStatus) {
+        User user = findByEmail(email);
         user.setStatus(newStatus);
         userRepository.save(user);
     }

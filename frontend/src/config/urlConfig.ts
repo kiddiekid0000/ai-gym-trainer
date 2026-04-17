@@ -1,5 +1,6 @@
 // src/config/urlConfig.ts
-export const API_BASE_URL = 'http://localhost:8080';
+// Use /api for Nginx proxy routing - Nginx forwards this to gym-trainer-backend:8080
+export const API_BASE_URL = '/api';
 
 export const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login',
