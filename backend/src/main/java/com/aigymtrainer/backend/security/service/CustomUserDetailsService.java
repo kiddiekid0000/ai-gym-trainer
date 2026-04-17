@@ -1,5 +1,8 @@
 package com.aigymtrainer.backend.security.service;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -10,9 +13,6 @@ import org.springframework.stereotype.Service;
 
 import com.aigymtrainer.backend.user.domain.User;
 import com.aigymtrainer.backend.user.repository.UserRepository;
-
-import java.util.Collection;
-import java.util.Collections;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {

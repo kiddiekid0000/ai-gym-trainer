@@ -1,17 +1,18 @@
 package com.aigymtrainer.backend.user.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.aigymtrainer.backend.exception.UserNotFoundException;
 import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
 import com.aigymtrainer.backend.user.dto.UserDto;
 import com.aigymtrainer.backend.user.mapper.UserMapper;
 import com.aigymtrainer.backend.user.repository.UserRepository;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService {
