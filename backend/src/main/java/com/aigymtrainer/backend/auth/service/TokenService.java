@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
+import com.aigymtrainer.backend.exception.AccountSuspendedException;
 import com.aigymtrainer.backend.exception.InvalidRefreshTokenException;
 import com.aigymtrainer.backend.exception.TokenRevokedException;
 import com.aigymtrainer.backend.security.service.JwtService;
@@ -109,6 +110,12 @@ public class TokenService {
         // Fetch user to get role
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidRefreshTokenException("User not found"));
+
+        // Defense in depth: Check if account is suspended
+        if (!user.getStatus().name().equals("ACTIVE")) {
+            logger.warn("Refresh token request from suspended user: {}", email);
+            throw new AccountSuspendedException(email);
+        }
 
         // Generate new tokens
         String newAccessToken = jwtService.generateAccessToken(email, user.getRole().name());

@@ -3,10 +3,11 @@ package com.aigymtrainer.backend.user.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.aigymtrainer.backend.auth.service.TokenService;
 import com.aigymtrainer.backend.exception.UserNotFoundException;
 import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
@@ -19,10 +20,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final TokenService tokenService;
+    private final CacheManager cacheManager;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, TokenService tokenService, CacheManager cacheManager) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.tokenService = tokenService;
+        this.cacheManager = cacheManager;
     }
 
     public User save(User user) {
@@ -50,19 +55,22 @@ public class UserService {
     }
 
     @Transactional
-    @CacheEvict(value = "user_auth_cache", key = "#root.target.findById(#id).email")
-    public void updateUserStatus(Long id, Status newStatus) {
+    public UserDto updateUserStatus(Long id, Status newStatus) {
         User user = findById(id);
         String email = user.getEmail();
         user.setStatus(newStatus);
         userRepository.save(user);
-    }
-
-    @Transactional
-    @CacheEvict(value = "user_auth_cache", key = "#email")
-    public void updateUserStatusByEmail(String email, Status newStatus) {
-        User user = findByEmail(email);
-        user.setStatus(newStatus);
-        userRepository.save(user);
+        
+        // Evict cache for this user
+        if (cacheManager.getCache("user_auth_cache") != null) {
+            cacheManager.getCache("user_auth_cache").evict(email);
+        }
+        
+        // Kill switch: Delete refresh token if suspending user
+        if (newStatus == Status.SUSPENDED) {
+            tokenService.deleteRefreshToken(email);
+        }
+        
+        return userMapper.toUserDto(user);
     }
 }

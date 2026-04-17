@@ -1,16 +1,21 @@
 package com.aigymtrainer.backend.user.controller;
 
-import com.aigymtrainer.backend.user.domain.Status;
-import com.aigymtrainer.backend.user.dto.UserDto;
-import com.aigymtrainer.backend.user.mapper.UserMapper;
-import com.aigymtrainer.backend.user.service.UserService;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.aigymtrainer.backend.user.domain.Status;
+import com.aigymtrainer.backend.user.dto.UserDto;
+import com.aigymtrainer.backend.user.mapper.UserMapper;
+import com.aigymtrainer.backend.user.service.UserService;
 
 @RestController
 @RequestMapping("/users")
@@ -56,19 +61,13 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserDto suspendUser(@PathVariable Long id) {
         logger.info("Suspend user request for ID: {}", id);
-        
-        userService.updateUserStatus(id, Status.SUSPENDED);
-        var user = userService.findById(id);
-        return userMapper.toUserDto(user);
+        return userService.updateUserStatus(id, Status.SUSPENDED);
     }
 
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
     public UserDto activateUser(@PathVariable Long id) {
         logger.info("Activate user request for ID: {}", id);
-        
-        userService.updateUserStatus(id, Status.ACTIVE);
-        var user = userService.findById(id);
-        return userMapper.toUserDto(user);
+        return userService.updateUserStatus(id, Status.ACTIVE);
     }
 }
