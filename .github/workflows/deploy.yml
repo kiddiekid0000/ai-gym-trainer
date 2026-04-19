@@ -79,3 +79,5 @@ jobs:
               echo "Deployment Failed: App is not responding"
               exit 1
             fi
+
+            #testing deploy after adding the missing part DOCKER_USERNAME
