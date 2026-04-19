@@ -73,3 +73,6 @@ jobs:
               echo "Deployment Failed"
               exit 1
             fi
+
+
+            #adding comment for re-push after adding azure variable to git hub secret
