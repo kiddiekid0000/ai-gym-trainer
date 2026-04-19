@@ -9,26 +9,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      #cache Maven to build faster
       - name: Cache Maven dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/backend/pom.xml') }} # Cập nhật đường dẫn pom
           restore-keys: ${{ runner.os }}-m2
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend   # <--- Quan trọng: trỏ vào thư mục backend
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
@@ -37,21 +37,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Azure VM
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
-            # Pull new image from Docker hub
             docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
-            
-            # Stop old container 
             docker stop gymapp-container || true
             docker rm gymapp-container || true
             
-            # Run container with variables from GitHub Secrets
-            # -Xmx2g to limit Java using only 2GB, leave 2GB for OS, Redis, DB
             docker run -d \
               --name gymapp-container \
               --network gymapp-network \
@@ -70,14 +65,11 @@ jobs:
               -e JAVA_OPTS="-Xmx2g -Xms1g" \
               ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-            # Health Check: wait 30s for app to start 
             echo "Waiting for app to start..."
             sleep 30
             if curl -f http://localhost:8080/actuator/health | grep -q "UP"; then
-              echo "Deployment Successful: App is UP"
+              echo "Deployment Successful"
             else
-              echo "Deployment Failed: App is not responding"
+              echo "Deployment Failed"
               exit 1
             fi
-
-            #testing deploy after adding the missing part DOCKER_USERNAME
