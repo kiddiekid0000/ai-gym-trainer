@@ -75,4 +75,4 @@ jobs:
             fi
 
 
-            #adding comment for re-push after adding azure variable to git hub secret
+            #adding comment for re-push after modifying azure variable from git hub secret
