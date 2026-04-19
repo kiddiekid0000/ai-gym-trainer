@@ -62,11 +62,11 @@ jobs:
               -e MAIL_PORT='${{ secrets.MAIL_PORT }}' \
               -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
               -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
-              -e JAVA_OPTS="-Xmx2g -Xms1g" \
+              -e JAVA_OPTS="-Xmx512m -Xms256m" \
               ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
             echo "Waiting for app to start..."
-            sleep 30
+            sleep 60
             if curl -f http://localhost:8080/actuator/health | grep -q "UP"; then
               echo "Deployment Successful"
             else
