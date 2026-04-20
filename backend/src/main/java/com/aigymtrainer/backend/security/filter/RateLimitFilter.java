@@ -53,4 +53,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         
         return request.getRemoteAddr();
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return request.getRequestURI().startsWith("/actuator");
+    }
 }

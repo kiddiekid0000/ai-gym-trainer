@@ -15,7 +15,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/backend/pom.xml') }} # Cập nhật đường dẫn pom
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/backend/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
       - name: Login to Docker Hub
@@ -27,7 +27,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend   # <--- Quan trọng: trỏ vào thư mục backend
+          context: ./backend
           file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
@@ -43,14 +43,20 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
+            # 1. Pull ảnh mới nhất
             docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
+            
+            # 2. Dọn dẹp container cũ
             docker stop gymapp-container || true
             docker rm gymapp-container || true
             
+            # 3. Chạy container mới với biến môi trường linh hoạt
             docker run -d \
               --name gymapp-container \
               --network gymapp-network \
               -p 8080:8080 \
+              -e DB_URL='${{ secrets.DB_URL }}' \
+              -e REDIS_HOST='${{ secrets.REDIS_HOST }}' \
               -e SPRING_PROFILES_ACTIVE=docker \
               -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \
               -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
@@ -62,17 +68,19 @@ jobs:
               -e MAIL_PORT='${{ secrets.MAIL_PORT }}' \
               -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
               -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
+              -e HIBERNATE_MODE='update' \
               -e JAVA_OPTS="-Xmx512m -Xms256m" \
               ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-            echo "Waiting for app to start..."
-            sleep 60
-            if curl -f http://localhost:8080/actuator/health | grep -q "UP"; then
-              echo "Deployment Successful"
+            # 4. Kiểm tra sức khỏe App (Health Check)
+            echo "Waiting for app to start and Hibernate to sync..."
+            sleep 45
+            
+            if curl -s http://localhost:8080/actuator/health | grep -q "status"; then
+              echo "Deployment Successful - App is UP"
+              docker ps
             else
-              echo "Deployment Failed"
+              echo "Deployment Failed - Check logs below:"
+              docker logs --tail 100 gymapp-container
               exit 1
             fi
-
-
-            #adding comment for re-push after modifying azure variable from git hub secret
