@@ -109,3 +109,5 @@ jobs:
               docker logs --tail 100 gymapp-container
               exit 1
             fi
+
+            #re-push to test admin login
