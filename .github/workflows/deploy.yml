@@ -43,18 +43,20 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
-            # 1. Pull ảnh mới nhất
+            # 1. Pull new docker image from DockerHub
             docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
             
-            # 2. Dọn dẹp container cũ
+            # 2. Clean old docker conntainer
             docker stop gymapp-container || true
             docker rm gymapp-container || true
             
-            # 3. Chạy container mới với biến môi trường linh hoạt
+            # 3. run docker with B2ls_v2 (4GB RAM)
             docker run -d \
               --name gymapp-container \
               --network gymapp-network \
               -p 8080:8080 \
+              --log-opt max-size=10m \
+              --log-opt max-file=3 \
               -e DB_URL='${{ secrets.DB_URL }}' \
               -e REDIS_HOST='${{ secrets.REDIS_HOST }}' \
               -e SPRING_PROFILES_ACTIVE=docker \
@@ -69,18 +71,18 @@ jobs:
               -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
               -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
               -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
-              -e JAVA_OPTS="-Xmx512m -Xms256m" \
+              -e JAVA_OPTS="-Xmx2g -Xms1g -Dspring.main.banner-mode=off" \
               ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-            # 4. Kiểm tra sức khỏe App (Health Check)
-            echo "Waiting for app to start and Hibernate to sync..."
+            # Health Check
+            echo "Waiting for app to start and Hibernate to sync (45s)..."
             sleep 45
             
             if curl -s http://localhost:8080/actuator/health | grep -q "status"; then
-              echo "Deployment Successful - App is UP"
+              echo "Deployment Successful - App is UP and Running!"
               docker ps
             else
-              echo "Deployment Failed - Check logs below:"
+              echo "Deployment Failed - Printing last 100 lines of logs:"
               docker logs --tail 100 gymapp-container
               exit 1
             fi
