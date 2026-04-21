@@ -63,7 +63,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://localhost:3000", "http://localhost:3000", "http://localhost:5173", "https://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "https://localhost:3000", 
+            "http://localhost:3000", 
+            "http://localhost:5173", 
+            "https://localhost:5173",
+            "https://gymaitrainer.duckdns.org",
+            "http://gymaitrainer.duckdns.org"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
