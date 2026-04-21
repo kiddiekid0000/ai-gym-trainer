@@ -1,4 +1,4 @@
-name: CI/CD Gym App
+name: CI/CD Gym App Full Stack
 
 on:
   push:
@@ -11,6 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Optimization: Cache Maven dependencies to speed up Backend build
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
@@ -24,13 +25,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
+      # Build and Push Backend Image
+      - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
+
+      # Build and Push Frontend Image (Nginx)
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
 
   deploy:
     needs: build-and-push
@@ -43,14 +54,18 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
-            # 1. Pull new docker image from DockerHub
+            # 1. Ensure internal Docker network exists
+            docker network create gymapp-network || true
+
+            # 2. Pull latest images
             docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
             
-            # 2. Clean old docker conntainer
-            docker stop gymapp-container || true
-            docker rm gymapp-container || true
+            # 3. Stop and remove existing containers to prevent port conflicts
+            docker stop gymapp-container gymapp-frontend || true
+            docker rm gymapp-container gymapp-frontend || true
             
-            # 3. run docker with B2ls_v2 (4GB RAM)
+            # 4. Run Backend (Note: REDIS_HOST set to 'redis' for container networking)
             docker run -d \
               --name gymapp-container \
               --network gymapp-network \
@@ -58,7 +73,7 @@ jobs:
               --log-opt max-size=10m \
               --log-opt max-file=3 \
               -e DB_URL='${{ secrets.DB_URL }}' \
-              -e REDIS_HOST='${{ secrets.REDIS_HOST }}' \
+              -e REDIS_HOST='redis' \
               -e SPRING_PROFILES_ACTIVE=docker \
               -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \
               -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
@@ -74,15 +89,23 @@ jobs:
               -e JAVA_OPTS="-Xmx2g -Xms1g -Dspring.main.banner-mode=off" \
               ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-            # Health Check
-            echo "Waiting for app to start and Hibernate to sync (45s)..."
+            # 5. Run Frontend (Exposes Port 80 to the Internet)
+            docker run -d \
+              --name gymapp-frontend \
+              --network gymapp-network \
+              -p 80:80 \
+              --log-opt max-size=10m \
+              --log-opt max-file=3 \
+              ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
+
+            # 6. Health Check Logic
+            echo "Waiting for application to initialize (45s)..."
             sleep 45
-            
             if curl -s http://localhost:8080/actuator/health | grep -q "status"; then
-              echo "Deployment Successful - App is UP and Running!"
+              echo "Deployment Successful - Actuator is UP"
               docker ps
             else
-              echo "Deployment Failed - Printing last 100 lines of logs:"
+              echo "Deployment Failed - Printing container logs:"
               docker logs --tail 100 gymapp-container
               exit 1
             fi
