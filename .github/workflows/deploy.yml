@@ -11,7 +11,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Optimization: Cache Maven dependencies to speed up Backend build
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
@@ -23,9 +22,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build and Push Backend Image
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
@@ -34,7 +32,6 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-      # Build and Push Frontend Image (Nginx)
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -47,6 +44,20 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Sync the docker-compose.yml file from GitHub to Azure VM
+      - name: Copy docker-compose.yml to Azure
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/app"
+
+      # Generate .env from ALL secrets and restart containers
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -54,60 +65,39 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
-            # 1. Ensure internal Docker network exists
-            docker network create gymapp-network || true
-
-            # 2. Pull latest images
-            docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
-            docker pull ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
+            mkdir -p ~/app
+            cd ~/app
             
-            # 3. Stop and remove existing containers to prevent port conflicts
-            docker stop gymapp-container gymapp-frontend || true
-            docker rm gymapp-container gymapp-frontend || true
-            
-            # 4. Run Backend (Note: REDIS_HOST set to 'redis' for container networking)
-            docker run -d \
-              --name gymapp-container \
-              --network gymapp-network \
-              -p 8080:8080 \
-              --log-opt max-size=10m \
-              --log-opt max-file=3 \
-              -e DB_URL='${{ secrets.DB_URL }}' \
-              -e REDIS_HOST='redis' \
-              -e SPRING_PROFILES_ACTIVE=docker \
-              -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \
-              -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
-              -e REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}' \
-              -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-              -e ADMIN_EMAIL='${{ secrets.ADMIN_EMAIL }}' \
-              -e ADMIN_PASSWORD='${{ secrets.ADMIN_PASSWORD }}' \
-              -e MAIL_HOST='${{ secrets.MAIL_HOST }}' \
-              -e MAIL_PORT='${{ secrets.MAIL_PORT }}' \
-              -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
-              -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
-              -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
-              -e JAVA_OPTS="-Xmx2g -Xms1g -Dspring.main.banner-mode=off" \
-              ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
+            # Writing ALL secrets to .env file on Azure
+            cat <<EOF > .env
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            DB_URL=${{ secrets.DB_URL }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            EOF
 
-            # 5. Run Frontend (Exposes Port 80 to the Internet)
-            docker run -d \
-              --name gymapp-frontend \
-              --network gymapp-network \
-              -p 80:80 \
-              --log-opt max-size=10m \
-              --log-opt max-file=3 \
-              ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
+            # Deploy process
+            docker-compose pull
+            docker-compose up -d --force-recreate
+            docker image prune -f
 
-            # 6. Health Check Logic
-            echo "Waiting for application to initialize (45s)..."
+            # Health Check
+            echo "Waiting for backend to start..."
             sleep 45
             if curl -s http://localhost:8080/actuator/health | grep -q "status"; then
-              echo "Deployment Successful - Actuator is UP"
+              echo "Deployment Successful"
               docker ps
             else
-              echo "Deployment Failed - Printing container logs:"
-              docker logs --tail 100 gymapp-container
+              echo "Deployment Failed - Printing backend logs:"
+              docker-compose logs --tail 100 gym-trainer-backend
               exit 1
             fi
-
-            #re-push to test admin login
