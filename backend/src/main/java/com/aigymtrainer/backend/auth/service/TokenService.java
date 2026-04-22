@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +15,10 @@ import com.aigymtrainer.backend.exception.AccountSuspendedException;
 import com.aigymtrainer.backend.exception.InvalidRefreshTokenException;
 import com.aigymtrainer.backend.exception.TokenRevokedException;
 import com.aigymtrainer.backend.security.service.JwtService;
+import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
-import com.aigymtrainer.backend.user.repository.UserRepository;
+import com.aigymtrainer.backend.user.event.UserStatusChangedEvent;
+import com.aigymtrainer.backend.user.service.UserService;
 
 @Service
 public class TokenService {
@@ -24,17 +27,17 @@ public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtService jwtService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     private static final long REFRESH_TOKEN_TTL = 7;
     private static final TimeUnit REFRESH_TOKEN_TTL_UNIT = TimeUnit.DAYS;
 
     public TokenService(RedisTemplate<String, String> redisTemplate,
                                       JwtService jwtService,
-                                      UserRepository userRepository) {
+                                      UserService userService) {
         this.redisTemplate = redisTemplate;
         this.jwtService = jwtService;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     public void storeRefreshToken(String userEmail, String token) {
@@ -108,8 +111,7 @@ public class TokenService {
         logger.debug("Refresh token validated in Redis");
 
         // Fetch user to get role
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidRefreshTokenException("User not found"));
+        User user = userService.findByEmail(email);
 
         // Defense in depth: Check if account is suspended
         if (!user.getStatus().name().equals("ACTIVE")) {
@@ -126,6 +128,14 @@ public class TokenService {
         logger.debug("New refresh token stored in Redis");
 
         return new AuthResult(new com.aigymtrainer.backend.auth.dto.AuthTokens(newAccessToken, newRefreshToken), user);
+    }
+
+    @EventListener
+    public void handleUserStatusChanged(UserStatusChangedEvent event) {
+        if (event.newStatus() == Status.SUSPENDED) {
+            logger.info("User suspended, revoking tokens for: {}", event.email());
+            deleteRefreshToken(event.email());
+        }
     }
 
     @Transactional

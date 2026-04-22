@@ -12,19 +12,18 @@ import com.aigymtrainer.backend.auth.dto.LoginRequest;
 import com.aigymtrainer.backend.exception.AccountNotVerifiedException;
 import com.aigymtrainer.backend.exception.AccountSuspendedException;
 import com.aigymtrainer.backend.exception.InvalidCredentialsException;
-import com.aigymtrainer.backend.exception.UserNotFoundException;
 import com.aigymtrainer.backend.security.service.JwtService;
 import com.aigymtrainer.backend.user.domain.Role;
 import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
-import com.aigymtrainer.backend.user.repository.UserRepository;
+import com.aigymtrainer.backend.user.service.UserService;
 
 @Service
 public class AuthenticationService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final TokenService tokenService;
@@ -35,11 +34,11 @@ public class AuthenticationService {
     @Value("${admin.password}")
     private String adminPassword;
 
-    public AuthenticationService(UserRepository userRepository,
+    public AuthenticationService(UserService userService,
                                     PasswordEncoder passwordEncoder,
                                     JwtService jwtService,
                                     TokenService tokenService) {
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.tokenService = tokenService;
@@ -80,8 +79,7 @@ public class AuthenticationService {
     }
 
     private AuthResult authenticateUser(LoginRequest loginRequest) {
-        User user = userRepository.findByEmail(loginRequest.email())
-                .orElseThrow(() -> new UserNotFoundException(loginRequest.email()));
+        User user = userService.findByEmail(loginRequest.email());
 
         if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
             throw new InvalidCredentialsException("Invalid password");

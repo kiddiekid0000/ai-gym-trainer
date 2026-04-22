@@ -2,6 +2,7 @@ package com.aigymtrainer.backend.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UserRegistrationDto(
@@ -10,6 +11,8 @@ public record UserRegistrationDto(
     String email,
     
     @NotBlank(message = "Password cannot be blank")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 10, message = "Password must be at least 10 characters")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{10,}$", 
+             message = "Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character")
     String password
 ) {}

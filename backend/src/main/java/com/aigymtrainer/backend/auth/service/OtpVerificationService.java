@@ -13,11 +13,10 @@ import com.aigymtrainer.backend.common.constant.AuthConstants;
 import com.aigymtrainer.backend.common.constant.RedisKeyConstants;
 import com.aigymtrainer.backend.exception.InvalidOtpException;
 import com.aigymtrainer.backend.exception.OtpBlockedException;
-import com.aigymtrainer.backend.exception.UserNotFoundException;
 import com.aigymtrainer.backend.infrastructure.email.EmailService;
 import com.aigymtrainer.backend.security.service.RateLimitService;
 import com.aigymtrainer.backend.user.domain.User;
-import com.aigymtrainer.backend.user.repository.UserRepository;
+import com.aigymtrainer.backend.user.service.UserService;
 
 @Service
 public class OtpVerificationService {
@@ -26,24 +25,23 @@ public class OtpVerificationService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final EmailService emailService;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final RateLimitService rateLimitService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public OtpVerificationService(RedisTemplate<String, String> redisTemplate,
                                       EmailService emailService,
-                                      UserRepository userRepository,
+                                      UserService userService,
                                       RateLimitService rateLimitService) {
         this.redisTemplate = redisTemplate;
         this.emailService = emailService;
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.rateLimitService = rateLimitService;
     }
 
     public void sendOtp(String email) {
         // Check if user exists
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException(email));
+        User user = userService.findByEmail(email);
 
         // Generate and store OTP
         String otp = generateOtp(email);
@@ -81,11 +79,10 @@ public class OtpVerificationService {
         }
 
         // Mark user as verified and ACTIVE
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException(email));
+        User user = userService.findByEmail(email);
         user.setVerified(true);
         user.setStatus(com.aigymtrainer.backend.user.domain.Status.ACTIVE);
-        userRepository.save(user);
+        userService.save(user);
 
         // Reset failed attempts
         resetFailedAttempts(email);
