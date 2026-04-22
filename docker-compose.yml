@@ -49,7 +49,9 @@ services:
       - redis
       - postgres
     networks:
-      - gym-network
+      gym-network:
+        aliases:
+          - gymapp-container
     restart: unless-stopped
 
   frontend:
