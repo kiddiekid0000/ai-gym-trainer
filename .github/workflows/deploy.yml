@@ -47,7 +47,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Sync the docker-compose.yml file from GitHub to Azure VM
       - name: Copy docker-compose.yml to Azure
         uses: appleboy/scp-action@master
         with:
@@ -57,7 +56,6 @@ jobs:
           source: "docker-compose.yml"
           target: "~/app"
 
-      # Generate .env from ALL secrets and restart containers
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -68,7 +66,7 @@ jobs:
             mkdir -p ~/app
             cd ~/app
             
-            # Writing ALL secrets to .env file on Azure
+            # Write secrets to .env file
             cat <<EOF > .env
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             DB_URL=${{ secrets.DB_URL }}
@@ -85,28 +83,24 @@ jobs:
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
             EOF
 
-            # clean old containers and orphans
+            # Redeploy containers
             docker compose down --remove-orphans
-
-            # pull latest images and restart containers
             docker compose pull
             docker compose up -d --force-recreate
             
-            # clean old Docker image to free up space
+            # Clean up disk space
             docker image prune -f
 
-            # Health Check 
-            echo "Waiting for backend to start..."
-            for i in {1..10}; do
-              if curl -s http://localhost:8080/actuator/health | grep -q "UP"; then
-                echo "Deployment Successful"
+            # Final health check
+            echo "Waiting for containers to stabilize..."
+            sleep 25
+            
+            if [ "$(docker inspect -f '{{.State.Running}}' gym-trainer-backend)" == "true" ]; then
+                echo "Deployment Successful - All containers are Up!"
                 docker ps
                 exit 0
-              fi
-              echo "Waiting... ($i/10)"
-              sleep 10
-            done
-
-            echo "Deployment Failed - Printing backend logs:"
-            docker compose logs --tail 100 gym-trainer-backend
-            exit 1
+            else
+                echo "Deployment Failed - Backend container is not running. Printing logs:"
+                docker compose logs --tail 100 gym-trainer-backend
+                exit 1
+            fi
