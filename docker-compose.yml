@@ -29,10 +29,7 @@ services:
     restart: unless-stopped
 
   gym-trainer-backend:
-    # Use image for Production (Azure)
     image: ${DOCKER_USERNAME}/gymapp-backend:latest
-    # Keep build for Local Development
-    build: ./backend
     container_name: gym-trainer-backend
     env_file:
       - .env
@@ -56,10 +53,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    # Use image for Production (Azure)
     image: ${DOCKER_USERNAME}/gymapp-frontend:latest
-    # Keep build for Local Development
-    build: ./frontend
     container_name: gym-trainer-frontend
     ports:
       - "80:80"
