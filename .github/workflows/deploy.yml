@@ -85,9 +85,14 @@ jobs:
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
             EOF
 
-            # use 'docker compose' (with space) for version V2
+            # clean old containers and orphans
+            docker compose down --remove-orphans
+
+            # pull latest images and restart containers
             docker compose pull
             docker compose up -d --force-recreate
+            
+            # clean old Docker image to free up space
             docker image prune -f
 
             # Health Check 
