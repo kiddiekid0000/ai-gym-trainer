@@ -49,9 +49,7 @@ services:
       - redis
       - postgres
     networks:
-      gym-network:
-        aliases:
-          - gymapp-container
+      - gym-network # Đưa về dạng list đơn giản cho đồng bộ
     restart: unless-stopped
 
   frontend:

@@ -47,14 +47,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy configuration files to Azure
+      # Split into 2 steps to prevent losing docker-compose.yml due to strip_components
+      - name: Copy Docker Compose
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
-          source: "docker-compose.yml,nginx.conf"
+          source: "docker-compose.yml"
           target: "~/app"
+
+      # Copy nginx.conf and strip the 'frontend/' prefix
+      - name: Copy Nginx Config
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "frontend/nginx.conf"
+          target: "~/app"
+          strip_components: 1
 
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
