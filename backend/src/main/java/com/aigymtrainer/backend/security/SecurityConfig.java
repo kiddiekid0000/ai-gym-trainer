@@ -43,14 +43,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for API
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll()
-
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/verify-otp").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
-                        .anyRequest().authenticated()
+                    .requestMatchers("/actuator/**").permitAll()
+                    // Thêm /api/** vào trước các endpoint
+                    .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/verify-otp").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                    .anyRequest().authenticated()
                 )
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
