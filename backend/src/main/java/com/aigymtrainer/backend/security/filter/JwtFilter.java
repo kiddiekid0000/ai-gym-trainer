@@ -38,7 +38,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // Extract JWT token from cookies
         String token = extractTokenFromCookies(request);
         
-        if (token != null) {
+        if (token != null && !token.isBlank()) {
             try {
                 String email = jwtService.extractEmail(token);
                 String role = jwtService.extractRole(token);
