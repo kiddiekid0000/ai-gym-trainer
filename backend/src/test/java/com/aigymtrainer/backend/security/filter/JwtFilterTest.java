@@ -258,4 +258,77 @@ class JwtFilterTest {
         verify(jwtService, never()).isTokenExpired(anyString());
         verify(filterChain).doFilter(request, response);
     }
+
+    @Test
+    void doFilterInternal_ShouldHandleNullTokenGracefully() throws ServletException, IOException {
+        // Given
+        Cookie accessTokenCookie = new Cookie("accessToken", null);
+        
+        given(request.getCookies()).willReturn(new Cookie[]{accessTokenCookie});
+
+        // When
+        jwtFilter.doFilterInternal(request, response, filterChain);
+
+        // Then
+        verify(jwtService, never()).extractEmail(anyString());
+        verify(jwtService, never()).extractRole(anyString());
+        verify(jwtService, never()).isTokenExpired(anyString());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilterInternal_ShouldHandleExceptionDuringTokenProcessing() throws ServletException, IOException {
+        // Given
+        String token = "malformed.token";
+        Cookie accessTokenCookie = new Cookie("accessToken", token);
+        
+        given(request.getCookies()).willReturn(new Cookie[]{accessTokenCookie});
+        given(jwtService.extractEmail(token)).willThrow(new IllegalArgumentException("Malformed token"));
+        
+        // Mock SecurityContextHolder behavior
+        SecurityContextHolder.setContext(securityContext);
+
+        // When
+        jwtFilter.doFilterInternal(request, response, filterChain);
+
+        // Then
+        verify(jwtService).extractEmail(token);
+        verify(filterChain).doFilter(request, response);
+        verify(securityContext, never()).setAuthentication(any(Authentication.class));
+    }
+
+    @Test
+    void doFilterInternal_ShouldProcessTokenWithSpecialCharacters() throws ServletException, IOException {
+        // Given
+        String token = "special.token.with.dots.and.dashes-123";
+        String email = "special@example.com";
+        String role = "USER";
+        
+        Cookie accessTokenCookie = new Cookie("accessToken", token);
+        
+        given(request.getCookies()).willReturn(new Cookie[]{accessTokenCookie});
+        given(jwtService.extractEmail(token)).willReturn(email);
+        given(jwtService.extractRole(token)).willReturn(role);
+        given(jwtService.isTokenExpired(token)).willReturn(false);
+        
+        // Mock SecurityContextHolder behavior
+        SecurityContextHolder.setContext(securityContext);
+        ArgumentCaptor<Authentication> authCaptor = ArgumentCaptor.forClass(Authentication.class);
+
+        // When
+        jwtFilter.doFilterInternal(request, response, filterChain);
+
+        // Then
+        verify(jwtService).extractEmail(token);
+        verify(jwtService).extractRole(token);
+        verify(jwtService).isTokenExpired(token);
+        verify(securityContext).setAuthentication(authCaptor.capture());
+        verify(filterChain).doFilter(request, response);
+        
+        Authentication capturedAuth = authCaptor.getValue();
+        assertThat(capturedAuth.getPrincipal()).isEqualTo(email);
+        assertThat(capturedAuth.getAuthorities())
+            .extracting(GrantedAuthority::getAuthority)
+            .containsExactly("ROLE_" + role);
+    }
 }
