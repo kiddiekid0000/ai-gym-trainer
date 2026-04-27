@@ -20,7 +20,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimitService rateLimitService;
     private final Set<String> trustedProxies = Set.of("127.0.0.1", "172.17.0.1");
     
-    // Only use Regex from IP 172.16.0.0 to 172.31.255.255
+    // Only use Regex from IP 172.16.0.0 to 172.31.255.255 docker
     private static final Pattern DOCKER_PRIVATE_RANGE = 
         Pattern.compile("^172\\.(1[6-9]|2[0-9]|3[0-1])\\..*");
 
