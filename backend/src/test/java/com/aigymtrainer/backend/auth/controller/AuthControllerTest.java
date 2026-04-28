@@ -1,22 +1,19 @@
 package com.aigymtrainer.backend.auth.controller;
 
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.AuthTokens;
@@ -27,34 +24,26 @@ import com.aigymtrainer.backend.auth.service.TokenService;
 import com.aigymtrainer.backend.user.domain.Role;
 import com.aigymtrainer.backend.user.domain.Status;
 import com.aigymtrainer.backend.user.domain.User;
-import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
-@ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
     private MockMvc mockMvc;
 
-    @Mock
+    @MockitoBean
     private AuthenticationService authenticationService;
 
-    @Mock
+    @MockitoBean
     private RegistrationService registrationService;
 
-    @Mock
+    @MockitoBean
     private OtpVerificationService otpVerificationService;
 
-    @Mock
+    @MockitoBean
     private TokenService tokenService;
-
-    @org.junit.jupiter.api.BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-    }
 
     @Test
     void register_shouldReturnSuccess_whenValidRegistration() throws Exception {
