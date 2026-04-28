@@ -3,7 +3,8 @@ package com.aigymtrainer.backend.auth.controller;
 import com.aigymtrainer.backend.auth.dto.AuthResponse;
 import com.aigymtrainer.backend.auth.dto.AuthResult;
 import com.aigymtrainer.backend.auth.dto.LoginRequest;
-import com.aigymtrainer.backend.auth.dto.OtpRequest;
+import com.aigymtrainer.backend.auth.dto.SendOtpRequest;
+import com.aigymtrainer.backend.auth.dto.VerifyOtpRequest;
 import com.aigymtrainer.backend.auth.service.AuthenticationService;
 import com.aigymtrainer.backend.auth.service.OtpVerificationService;
 import com.aigymtrainer.backend.auth.service.RegistrationService;
@@ -54,7 +55,7 @@ public class AuthController {
     }
 
     @PostMapping("/send-otp")
-    public AuthResponse sendOtp(@Valid @RequestBody OtpRequest request) {
+    public AuthResponse sendOtp(@Valid @RequestBody SendOtpRequest request) {
         logger.info("Send OTP request for email: {}", request.email());
         
         otpVerificationService.sendOtp(request.email());
@@ -62,7 +63,7 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public AuthResponse verifyOtp(@Valid @RequestBody OtpRequest request, HttpServletResponse response) {
+    public AuthResponse verifyOtp(@Valid @RequestBody VerifyOtpRequest request, HttpServletResponse response) {
         logger.info("Verify OTP request for email: {}", request.email());
         
         otpVerificationService.verifyOtp(request.email(), request.otp());
@@ -70,7 +71,7 @@ public class AuthController {
     }
 
     @PostMapping("/resend-otp")
-    public AuthResponse resendOtp(@Valid @RequestBody OtpRequest request) {
+    public AuthResponse resendOtp(@Valid @RequestBody SendOtpRequest request) {
         logger.info("Resend OTP request for email: {}", request.email());
         
         otpVerificationService.resendOtp(request.email());
