@@ -36,7 +36,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
         // connect-src for header response, allow localhost in dev for API calls, strict in prod
         String connectSrc = isDev
                 ? "'self' http://localhost:8080"
-                : "'self' https://yourdomain.com";    //change to real domain when deploy
+                : "'self'";    //change to real domain when deploy
 
         // Dev allows inline for convenience, Prod is strict
         String styleSrc = isDev

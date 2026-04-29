@@ -72,7 +72,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (trustedProxies.contains(ip)) {
             return true;
         }
-        // Chỉ trust dải private 172.16.0.0/12
+        // Only trust private 172.16.0.0/12
         return DOCKER_PRIVATE_RANGE.matcher(ip).matches();
     }
 
