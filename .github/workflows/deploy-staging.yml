@@ -1,0 +1,117 @@
+name: CI/CD Gym App - Staging
+
+on:
+  push:
+    branches: [ "staging" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Backend (Staging)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:staging
+
+      - name: Build and push Frontend (Staging)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:staging
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Split into 2 steps to prevent losing docker-compose.yml due to strip_components
+      - name: Copy Docker Compose Staging
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "docker-compose.staging.yml"
+          target: "~/app-staging"
+
+      # Copy nginx staging config and strip the 'frontend/' prefix
+      - name: Copy Nginx Config Staging
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "nginx-staging.conf"
+          target: "~/app-staging"
+
+      - name: Deploy to Staging Azure VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          script: |
+            mkdir -p ~/app-staging
+            cd ~/app-staging
+            
+            cat <<EOF > .env
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            DB_URL=${{ secrets.DB_URL }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            EOF
+
+            docker compose -f docker-compose.staging.yml down --remove-orphans
+            docker compose -f docker-compose.staging.yml pull
+            docker compose -f docker-compose.staging.yml up -d --force-recreate
+            
+            docker image prune -f
+
+            echo "Checking Nginx Staging configuration..."
+            docker exec gym-trainer-frontend-staging nginx -t
+            
+            echo "Waiting for containers to stabilize..."
+            sleep 25
+            
+            if [ "$(docker inspect -f '{{.State.Running}}' gym-trainer-backend-staging)" == "true" ]; then
+                echo "Staging Deployment Successful"
+                docker ps | grep staging
+                exit 0
+            else
+                echo "Staging Deployment Failed - Backend is down"
+                docker compose -f docker-compose.staging.yml logs --tail 100 gym-trainer-backend-staging
+                exit 1
+            fi
