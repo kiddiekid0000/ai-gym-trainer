@@ -48,38 +48,109 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Staging Azure VM (Native SSH)
+      - name: Deploy to Staging Azure VM
         run: |
           # Setup SSH key
           mkdir -p ~/.ssh
           echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
           
-          # Copy docker-compose.staging.yml
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key docker-compose.staging.yml ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/app-staging/
-          
-          # Copy nginx-staging.conf
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key nginx-staging.conf ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/app-staging/
-          
-          # Deploy commands (send as multiple commands, not heredoc)
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "rm -rf ~/app-staging && mkdir -p ~/app-staging && cd ~/app-staging"
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "cat > .env << 'ENVEOF'
-          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          DB_URL=${{ secrets.DB_URL }}
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          REDIS_HOST=${{ secrets.REDIS_HOST }}
-          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-          MAIL_HOST=${{ secrets.MAIL_HOST }}
-          MAIL_PORT=${{ secrets.MAIL_PORT }}
-          MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-          ENVEOF"
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "cd ~/app-staging && docker compose -f docker-compose.staging.yml down --remove-orphans 2>/dev/null; docker compose -f docker-compose.staging.yml pull; docker compose -f docker-compose.staging.yml up -d"
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "sleep 30 && if docker ps | grep -q staging; then echo '✅ Staging Deployment Successful'; else echo '❌ Staging Deployment Failed'; docker compose -f docker-compose.staging.yml logs --tail 100; exit 1; fi"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} '
+            rm -rf ~/app-staging
+            mkdir -p ~/app-staging
+            cd ~/app-staging
+            
+            # Tạo nginx-staging.conf
+            cat > nginx-staging.conf << "NGINXEOF"
+            server {
+                listen 80;
+                server_name _;
+                location /api {
+                    proxy_pass http://backend-staging:8080;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+                location / {
+                    root /usr/share/nginx/html;
+                    try_files $uri $uri/ /index.html;
+                }
+            }
+            NGINXEOF
+            
+            # Tạo docker-compose.staging.yml
+            cat > docker-compose.staging.yml << "DOCKEREOF"
+            version: "3.8"
+            services:
+              postgres-staging:
+                image: postgres:15-alpine
+                container_name: gym-trainer-postgres-staging
+                environment:
+                  POSTGRES_DB: aigym_staging
+                  POSTGRES_USER: ${DB_USERNAME}
+                  POSTGRES_PASSWORD: ${DB_PASSWORD}
+                volumes:
+                  - postgres_data_staging:/var/lib/postgresql/data
+                restart: unless-stopped
+              backend-staging:
+                image: ${DOCKER_USERNAME}/gymapp-backend:staging
+                container_name: gym-trainer-backend-staging
+                environment:
+                  - SPRING_PROFILES_ACTIVE=docker,staging
+                  - DB_URL=jdbc:postgresql://postgres-staging:5432/aigym_staging
+                  - DB_USERNAME=${DB_USERNAME}
+                  - DB_PASSWORD=${DB_PASSWORD}
+                  - JWT_SECRET=${JWT_SECRET}
+                  - ADMIN_EMAIL=${ADMIN_EMAIL}
+                  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+                  - MAIL_HOST=${MAIL_HOST}
+                  - MAIL_PORT=${MAIL_PORT}
+                  - MAIL_USERNAME=${MAIL_USERNAME}
+                  - MAIL_PASSWORD=${MAIL_PASSWORD}
+                depends_on:
+                  - postgres-staging
+                restart: unless-stopped
+              frontend-staging:
+                image: ${DOCKER_USERNAME}/gymapp-frontend:staging
+                container_name: gym-trainer-frontend-staging
+                ports:
+                  - "80:80"
+                volumes:
+                  - ./nginx-staging.conf:/etc/nginx/conf.d/default.conf
+                depends_on:
+                  - backend-staging
+                restart: unless-stopped
+            volumes:
+              postgres_data_staging:
+            DOCKEREOF
+            
+            # Tạo .env
+            cat > .env << "ENVEOF"
+            DOCKER_USERNAME=${DOCKER_USERNAME}
+            DB_URL=jdbc:postgresql://postgres-staging:5432/aigym_staging
+            DB_USERNAME=${DB_USERNAME}
+            DB_PASSWORD=${DB_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
+            REDIS_HOST=redis-staging
+            REDIS_PASSWORD=${REDIS_PASSWORD}
+            ADMIN_EMAIL=${ADMIN_EMAIL}
+            ADMIN_PASSWORD=${ADMIN_PASSWORD}
+            MAIL_HOST=${MAIL_HOST}
+            MAIL_PORT=${MAIL_PORT}
+            MAIL_USERNAME=${MAIL_USERNAME}
+            MAIL_PASSWORD=${MAIL_PASSWORD}
+            ENVEOF
+            
+            docker compose -f docker-compose.staging.yml down --remove-orphans 2>/dev/null
+            docker compose -f docker-compose.staging.yml pull
+            docker compose -f docker-compose.staging.yml up -d
+            
+            sleep 30
+            if docker ps | grep -q staging; then
+              echo "✅ Deployment successful"
+            else
+              echo "❌ Deployment failed"
+              docker compose -f docker-compose.staging.yml logs --tail 100
+              exit 1
+            fi
+          '
