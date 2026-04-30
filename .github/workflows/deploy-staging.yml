@@ -51,6 +51,7 @@ jobs:
       - name: Debug SSH key fingerprint
         run: |
           echo "${{ secrets.AZURE_SSH_KEY }}" > /tmp/key.pem
+          chmod 600 /tmp/key.pem
           ssh-keygen -l -f /tmp/key.pem
 
       - name: Copy Docker Compose Staging
