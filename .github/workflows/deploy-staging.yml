@@ -48,153 +48,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate SSH Key Format
-        run: |
-          # Check if key is provided
-          if [ -z "${{ secrets.AZURE_SSH_KEY }}" ]; then
-            echo "ERROR: SSH key is empty"
-            exit 1
-          fi
-            
-            # Save key to temp file and fix line endings (remove Windows \r)
-            echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > /tmp/ssh_key.pem
-            
-            # Check if it starts with proper PEM header (without exposing the key)
-            key_header=$(head -c 31 /tmp/ssh_key.pem)
-            if [[ "$key_header" == "-----BEGIN OPENSSH PRIVATE KEY-----" ]]; then
-              echo "✓ Key format appears valid (OpenSSH format)"
-            elif [[ "$key_header" == "-----BEGIN RSA PRIVATE KEY-----"* ]]; then
-              echo "✓ Key format appears valid (RSA format)"
-            else
-              echo "⚠ Warning: Key format may be incorrect"
-              rm /tmp/ssh_key.pem
-              exit 1
-            fi
-            
-            # Get key fingerprint (safe, non-sensitive)
-            echo "Attempting to get key fingerprint..."
-            if ssh-keygen -l -f /tmp/ssh_key.pem 2>/dev/null; then
-              echo "✓ SSH key is valid and readable"
-            else
-              echo "⚠ Warning: Could not read key fingerprint, but format is valid"
-            fi
-            
-            rm /tmp/ssh_key.pem
+      - name: Copy Docker Compose Staging
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "docker-compose.staging.yml"
+          target: "~/app-staging"
 
-      - name: Prepare SSH Key
-        run: |
-          mkdir -p /home/runner/.ssh
-          echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > /home/runner/.ssh/azure_key
-          chmod 600 /home/runner/.ssh/azure_key
-          
-          # Check file exists and size
-          ls -la /home/runner/.ssh/azure_key
-          echo "Size: $(wc -c < /home/runner/.ssh/azure_key) bytes"
-          
-          # Check fingerprint (safe, doesn't expose private key)
-          echo "Fingerprint:"
-          ssh-keygen -l -f /home/runner/.ssh/azure_key
-
-      - name: Test SSH Connection
-        run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i /home/runner/.ssh/azure_key azureuser@20.187.125.156 "echo 'SSH_SUCCESS'"
+      - name: Copy Nginx Staging Config
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "nginx-staging.conf"
+          target: "~/app-staging"
 
       - name: Deploy to Staging Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
-          key_path: /home/runner/.ssh/azure_key
+          key: ${{ secrets.AZURE_SSH_KEY }}
           script_stop: true
           script: |
             mkdir -p ~/app-staging
             cd ~/app-staging
-            
-            cat > docker-compose.staging.yml << 'EOF'
-            version: '3.8'
-            services:
-              postgres-staging:
-                image: postgres:15-alpine
-                container_name: gym-trainer-postgres-staging
-                environment:
-                  POSTGRES_DB: aigym_staging
-                  POSTGRES_USER: ${DB_USERNAME}
-                  POSTGRES_PASSWORD: ${DB_PASSWORD}
-                volumes:
-                  - postgres_data_staging:/var/lib/postgresql/data
-                restart: unless-stopped
-                networks:
-                  - gym-network-staging
-              redis-staging:
-                image: redis/redis-stack:latest
-                container_name: gym-trainer-redis-staging
-                command: redis-server --requirepass ${REDIS_PASSWORD}
-                networks:
-                  - gym-network-staging
-                volumes:
-                  - redis_data_staging:/data
-                restart: unless-stopped
-              backend-staging:
-                image: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:staging
-                container_name: gym-trainer-backend-staging
-                environment:
-                  - DB_URL=${DB_URL}
-                  - DB_USERNAME=${DB_USERNAME}
-                  - DB_PASSWORD=${DB_PASSWORD}
-                  - JWT_SECRET=${JWT_SECRET}
-                  - REDIS_HOST=${REDIS_HOST}
-                  - REDIS_PASSWORD=${REDIS_PASSWORD}
-                  - ADMIN_EMAIL=${ADMIN_EMAIL}
-                  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-                  - MAIL_HOST=${MAIL_HOST}
-                  - MAIL_PORT=${MAIL_PORT}
-                  - MAIL_USERNAME=${MAIL_USERNAME}
-                  - MAIL_PASSWORD=${MAIL_PASSWORD}
-                  - SPRING_PROFILES_ACTIVE=staging
-                depends_on:
-                  - postgres-staging
-                  - redis-staging
-                networks:
-                  - gym-network-staging
-                restart: unless-stopped
-              frontend-staging:
-                image: ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:staging
-                container_name: gym-trainer-frontend-staging
-                ports:
-                  - "80:80"
-                  - "443:443"
-                volumes:
-                  - ./nginx-staging.conf:/etc/nginx/conf.d/default.conf
-                depends_on:
-                  - backend-staging
-                networks:
-                  - gym-network-staging
-                restart: unless-stopped
-            volumes:
-              postgres_data_staging:
-              redis_data_staging:
-            networks:
-              gym-network-staging:
-                driver: bridge
-            EOF
-            
-            cat > nginx-staging.conf << 'EOF'
-            server {
-                listen 80;
-                server_name _;
-                location /api {
-                    proxy_pass http://backend-staging:8080;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-                location / {
-                    proxy_pass http://backend-staging:8080;
-                    proxy_set_header Host $host;
-                }
-            }
-            EOF
             
             cat > .env << 'EOF'
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
@@ -216,6 +97,12 @@ jobs:
             docker compose -f docker-compose.staging.yml pull
             docker compose -f docker-compose.staging.yml up -d --force-recreate
             docker image prune -f
+            
+            echo "Checking Nginx configuration..."
+            docker exec gym-trainer-frontend-staging nginx -t
+            
+            echo "Waiting for containers to stabilize..."
+            sleep 25
             
             if [ "$(docker inspect -f '{{.State.Running}}' gym-trainer-backend-staging 2>/dev/null)" == "true" ]; then
                 echo "✅ Staging Deployment Successful"
