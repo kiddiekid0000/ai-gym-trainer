@@ -55,32 +55,27 @@ jobs:
           echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
           
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "
             rm -rf ~/app-staging
             mkdir -p ~/app-staging
             cd ~/app-staging
             
-            # Tạo nginx-staging.conf
-            cat > nginx-staging.conf << "NGINXEOF"
-            server {
+            echo 'server {
                 listen 80;
                 server_name _;
                 location /api {
                     proxy_pass http://backend-staging:8080;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
                 }
                 location / {
                     root /usr/share/nginx/html;
-                    try_files $uri $uri/ /index.html;
+                    try_files \$uri \$uri/ /index.html;
                 }
-            }
-            NGINXEOF
+            }' > nginx-staging.conf
             
-            # Tạo docker-compose.staging.yml
-            cat > docker-compose.staging.yml << "DOCKEREOF"
-            version: "3.8"
+            echo 'version: \"3.8\"
             services:
               postgres-staging:
                 image: postgres:15-alpine
@@ -114,19 +109,16 @@ jobs:
                 image: ${DOCKER_USERNAME}/gymapp-frontend:staging
                 container_name: gym-trainer-frontend-staging
                 ports:
-                  - "80:80"
+                  - \"80:80\"
                 volumes:
                   - ./nginx-staging.conf:/etc/nginx/conf.d/default.conf
                 depends_on:
                   - backend-staging
                 restart: unless-stopped
             volumes:
-              postgres_data_staging:
-            DOCKEREOF
+              postgres_data_staging:' > docker-compose.staging.yml
             
-            # Tạo .env
-            cat > .env << "ENVEOF"
-            DOCKER_USERNAME=${DOCKER_USERNAME}
+            echo 'DOCKER_USERNAME=${DOCKER_USERNAME}
             DB_URL=jdbc:postgresql://postgres-staging:5432/aigym_staging
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
@@ -138,8 +130,7 @@ jobs:
             MAIL_HOST=${MAIL_HOST}
             MAIL_PORT=${MAIL_PORT}
             MAIL_USERNAME=${MAIL_USERNAME}
-            MAIL_PASSWORD=${MAIL_PASSWORD}
-            ENVEOF
+            MAIL_PASSWORD=${MAIL_PASSWORD}' > .env
             
             docker compose -f docker-compose.staging.yml down --remove-orphans 2>/dev/null
             docker compose -f docker-compose.staging.yml pull
@@ -147,10 +138,10 @@ jobs:
             
             sleep 30
             if docker ps | grep -q staging; then
-              echo "✅ Deployment successful"
+              echo \"✅ Deployment successful\"
             else
-              echo "❌ Deployment failed"
+              echo \"❌ Deployment failed\"
               docker compose -f docker-compose.staging.yml logs --tail 100
               exit 1
             fi
-          '
+          "
