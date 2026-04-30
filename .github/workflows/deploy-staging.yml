@@ -83,17 +83,28 @@ jobs:
 
       - name: Prepare SSH Key
         run: |
-          # Process SSH key to fix line endings and save to file
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > ~/.ssh/azure_key
-          chmod 600 ~/.ssh/azure_key
+          mkdir -p /home/runner/.ssh
+          echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > /home/runner/.ssh/azure_key
+          chmod 600 /home/runner/.ssh/azure_key
+          
+          # Check file exists and size
+          ls -la /home/runner/.ssh/azure_key
+          echo "Size: $(wc -c < /home/runner/.ssh/azure_key) bytes"
+          
+          # Check fingerprint (safe, doesn't expose private key)
+          echo "Fingerprint:"
+          ssh-keygen -l -f /home/runner/.ssh/azure_key
+
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i /home/runner/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "echo 'SSH_SUCCESS'"
 
       - name: Deploy to Staging Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
-          key_path: ~/.ssh/azure_key
+          key_path: /home/runner/.ssh/azure_key
           script_stop: true
           script: |
             mkdir -p ~/app-staging
