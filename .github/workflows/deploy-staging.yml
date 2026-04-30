@@ -84,6 +84,7 @@ jobs:
       - name: Prepare SSH Key
         run: |
           # Process SSH key to fix line endings and save to file
+          mkdir -p ~/.ssh
           echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
 
