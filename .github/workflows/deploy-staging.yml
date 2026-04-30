@@ -82,6 +82,7 @@ jobs:
             mkdir -p ~/app-staging
             cd ~/app-staging
             
+            rm -f .env
             cat > .env << 'EOF'
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             DB_URL=${{ secrets.DB_URL }}
