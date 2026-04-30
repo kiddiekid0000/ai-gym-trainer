@@ -48,11 +48,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug SSH key fingerprint
+      - name: Debug username
         run: |
-          echo "${{ secrets.AZURE_SSH_KEY }}" > /tmp/key.pem
-          chmod 600 /tmp/key.pem
-          ssh-keygen -l -f /tmp/key.pem
+          echo "Username: [${{ secrets.AZURE_USERNAME }}]"
+          echo "Length: $(echo -n "${{ secrets.AZURE_USERNAME }}" | wc -c)"
 
       - name: Copy Docker Compose Staging
         uses: appleboy/scp-action@master
