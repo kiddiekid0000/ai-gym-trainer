@@ -55,7 +55,7 @@ jobs:
           echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
           
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} << 'EOF'
             rm -rf ~/app-staging
             mkdir -p ~/app-staging
             cd ~/app-staging
@@ -143,4 +143,4 @@ jobs:
               docker compose -f docker-compose.staging.yml logs --tail 100
               exit 1
             fi
-          '
+          EOF
