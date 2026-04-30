@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis-staging:
     image: redis/redis-stack:latest

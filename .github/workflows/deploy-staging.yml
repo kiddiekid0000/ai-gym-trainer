@@ -83,21 +83,20 @@ jobs:
             cd ~/app-staging
             
             rm -f .env
-            cat > .env << 'EOF'
-            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            DB_URL=${{ secrets.DB_URL }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            REDIS_HOST=${{ secrets.REDIS_HOST }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-            MAIL_HOST=${{ secrets.MAIL_HOST }}
-            MAIL_PORT=${{ secrets.MAIL_PORT }}
-            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-            EOF
+            cat > .env << EOF
+DOCKER_USERNAME=$(echo "${{ secrets.DOCKER_USERNAME }}" | xargs)
+DB_URL=$(echo "${{ secrets.DB_URL }}" | xargs)
+DB_USERNAME=$(echo "${{ secrets.DB_USERNAME }}" | xargs)
+DB_PASSWORD=$(echo "${{ secrets.DB_PASSWORD }}" | xargs)
+JWT_SECRET=$(echo "${{ secrets.JWT_SECRET }}" | xargs)
+REDIS_HOST=$(echo "${{ secrets.REDIS_HOST }}" | xargs)
+REDIS_PASSWORD=$(echo "${{ secrets.REDIS_PASSWORD }}" | xargs)
+ADMIN_EMAIL=$(echo "${{ secrets.ADMIN_EMAIL }}" | xargs)
+ADMIN_PASSWORD=$(echo "${{ secrets.ADMIN_PASSWORD }}" | xargs)
+MAIL_HOST=$(echo "${{ secrets.MAIL_HOST }}" | xargs)
+MAIL_PORT=$(echo "${{ secrets.MAIL_PORT }}" | xargs)
+MAIL_USERNAME=$(echo "${{ secrets.MAIL_USERNAME }}" | xargs)
+MAIL_PASSWORD=$(echo "${{ secrets.MAIL_PASSWORD }}" | xargs)
             
             docker compose -f docker-compose.staging.yml down --remove-orphans
             docker compose -f docker-compose.staging.yml pull
