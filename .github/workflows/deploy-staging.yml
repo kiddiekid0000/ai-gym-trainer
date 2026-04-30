@@ -56,8 +56,8 @@ jobs:
             exit 1
           fi
             
-            # Save key to temp file and check format
-            echo "${{ secrets.AZURE_SSH_KEY }}" > /tmp/ssh_key.pem
+            # Save key to temp file and fix line endings (remove Windows \r)
+            echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > /tmp/ssh_key.pem
             
             # Check if it starts with proper PEM header (without exposing the key)
             key_header=$(head -c 31 /tmp/ssh_key.pem)
@@ -81,12 +81,18 @@ jobs:
             
             rm /tmp/ssh_key.pem
 
+      - name: Prepare SSH Key
+        run: |
+          # Process SSH key to fix line endings and save to file
+          echo "${{ secrets.AZURE_SSH_KEY }}" | tr -d '\r' > ~/.ssh/azure_key
+          chmod 600 ~/.ssh/azure_key
+
       - name: Deploy to Staging Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
-          key: ${{ secrets.AZURE_SSH_KEY }}
+          key_path: ~/.ssh/azure_key
           script_stop: true
           script: |
             mkdir -p ~/app-staging
