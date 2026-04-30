@@ -48,37 +48,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy Docker Compose Staging
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.AZURE_SERVER_IP }}
-          username: ${{ secrets.AZURE_USERNAME }}
-          key: ${{ secrets.AZURE_SSH_KEY }}
-          source: "docker-compose.staging.yml"
-          target: "~/app-staging"
-
-      - name: Copy Nginx Staging Config
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.AZURE_SERVER_IP }}
-          username: ${{ secrets.AZURE_USERNAME }}
-          key: ${{ secrets.AZURE_SSH_KEY }}
-          source: "nginx-staging.conf"
-          target: "~/app-staging"
-
-      - name: Deploy to Staging Azure VM
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.AZURE_SERVER_IP }}
-          username: ${{ secrets.AZURE_USERNAME }}
-          key: ${{ secrets.AZURE_SSH_KEY }}
-          script_stop: true
-          script: |
+      - name: Deploy to Staging Azure VM (Native SSH)
+        run: |
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
+          chmod 600 ~/.ssh/azure_key
+          
+          # Copy docker-compose.staging.yml
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key docker-compose.staging.yml ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/app-staging/
+          
+          # Copy nginx-staging.conf
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key nginx-staging.conf ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/app-staging/
+          
+          # Deploy
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} << 'EOF'
             rm -rf ~/app-staging
             mkdir -p ~/app-staging
             cd ~/app-staging
             
-            cat > .env << 'EOF'
+            cat > .env << 'ENVEOF'
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             DB_URL=${{ secrets.DB_URL }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -92,7 +81,7 @@ jobs:
             MAIL_PORT=${{ secrets.MAIL_PORT }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-            EOF
+            ENVEOF
             
             docker compose -f docker-compose.staging.yml down --remove-orphans 2>/dev/null
             docker compose -f docker-compose.staging.yml pull
@@ -106,3 +95,4 @@ jobs:
               docker compose -f docker-compose.staging.yml logs --tail 100
               exit 1
             fi
+          EOF
