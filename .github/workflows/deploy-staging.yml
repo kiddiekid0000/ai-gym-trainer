@@ -97,7 +97,7 @@ jobs:
 
       - name: Test SSH Connection
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i /home/runner/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "echo 'SSH_SUCCESS'"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i /home/runner/.ssh/azure_key azureuser@20.187.125.156 "echo 'SSH_SUCCESS'"
 
       - name: Deploy to Staging Azure VM
         uses: appleboy/ssh-action@v1.0.3
