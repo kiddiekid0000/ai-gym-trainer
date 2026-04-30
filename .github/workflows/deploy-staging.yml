@@ -62,12 +62,12 @@ jobs:
           scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key nginx-staging.conf ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/app-staging/
           
           # Deploy
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} << 'ENVEOF'
             rm -rf ~/app-staging
             mkdir -p ~/app-staging
             cd ~/app-staging
             
-            cat > .env << 'ENVEOF'
+            cat > .env << 'EOF'
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             DB_URL=${{ secrets.DB_URL }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -81,7 +81,7 @@ jobs:
             MAIL_PORT=${{ secrets.MAIL_PORT }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-            ENVEOF
+            EOF
             
             docker compose -f docker-compose.staging.yml down --remove-orphans 2>/dev/null
             docker compose -f docker-compose.staging.yml pull
@@ -95,4 +95,4 @@ jobs:
               docker compose -f docker-compose.staging.yml logs --tail 100
               exit 1
             fi
-          EOF
+          ENVEOF
