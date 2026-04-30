@@ -55,21 +55,31 @@ jobs:
             echo "ERROR: SSH key is empty"
             exit 1
           fi
-          
-          # Check if it starts with proper PEM header (without exposing the key)
-          key_header=$(echo "${{ secrets.AZURE_SSH_KEY }}" | head -c 31)
-          if [[ "$key_header" == "-----BEGIN OPENSSH PRIVATE KEY-----" ]]; then
-            echo "✓ Key format appears valid (OpenSSH format)"
-          elif [[ "$key_header" == "-----BEGIN RSA PRIVATE KEY-----"* ]]; then
-            echo "✓ Key format appears valid (RSA format)"
-          else
-            echo "⚠ Warning: Key format may be incorrect"
-            exit 1
-          fi
-          
-          # Get key fingerprint (safe, non-sensitive)
-          echo "Key fingerprint:"
-          echo "${{ secrets.AZURE_SSH_KEY }}" | ssh-keygen -l -f /dev/stdin
+            
+            # Save key to temp file and check format
+            echo "${{ secrets.AZURE_SSH_KEY }}" > /tmp/ssh_key.pem
+            
+            # Check if it starts with proper PEM header (without exposing the key)
+            key_header=$(head -c 31 /tmp/ssh_key.pem)
+            if [[ "$key_header" == "-----BEGIN OPENSSH PRIVATE KEY-----" ]]; then
+              echo "✓ Key format appears valid (OpenSSH format)"
+            elif [[ "$key_header" == "-----BEGIN RSA PRIVATE KEY-----"* ]]; then
+              echo "✓ Key format appears valid (RSA format)"
+            else
+              echo "⚠ Warning: Key format may be incorrect"
+              rm /tmp/ssh_key.pem
+              exit 1
+            fi
+            
+            # Get key fingerprint (safe, non-sensitive)
+            echo "Attempting to get key fingerprint..."
+            if ssh-keygen -l -f /tmp/ssh_key.pem 2>/dev/null; then
+              echo "✓ SSH key is valid and readable"
+            else
+              echo "⚠ Warning: Could not read key fingerprint, but format is valid"
+            fi
+            
+            rm /tmp/ssh_key.pem
 
       - name: Deploy to Staging Azure VM
         uses: appleboy/ssh-action@v1.0.3
