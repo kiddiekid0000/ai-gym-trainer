@@ -53,6 +53,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
+
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key .github/workflows/deploy-staging.sh ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/deploy.sh
           
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "
             export DOCKER_USERNAME='${{ secrets.DOCKER_USERNAME }}'
