@@ -73,5 +73,6 @@ jobs:
             export MAIL_PORT='${{ secrets.MAIL_PORT }}'
             export MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}'
             export MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}'
+            export REDIS_PASSWORD='${{ secrets.REDIS_PASSWORD }}'
             ~/deploy.sh
           "
