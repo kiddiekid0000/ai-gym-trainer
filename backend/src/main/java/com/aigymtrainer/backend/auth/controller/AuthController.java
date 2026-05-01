@@ -124,7 +124,7 @@ public class AuthController {
     }
 
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        boolean isSecure = "production".equals(environment);
+        boolean isSecure = "production".equals(environment) || "staging".equals(environment);
         
         ResponseCookie accessCookie = ResponseCookie
                 .from("accessToken", accessToken)
