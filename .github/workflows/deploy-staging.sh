@@ -55,6 +55,21 @@ NGINXEOF
 cat > docker-compose.staging.yml << 'DOCKEREOF'
 version: "3.8"
 services:
+  redis-staging:
+    image: redis/redis-stack:latest
+    container_name: gym-trainer-redis-staging
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - gym-network-staging
+    volumes:
+      - redis_data_staging:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   postgres-staging:
     image: postgres:15-alpine
     container_name: gym-trainer-postgres-staging
@@ -62,6 +77,8 @@ services:
       POSTGRES_DB: aigym_staging
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - gym-network-staging
     volumes:
       - postgres_data_staging:/var/lib/postgresql/data
     restart: unless-stopped
@@ -86,9 +103,15 @@ services:
       - MAIL_PORT=${MAIL_PORT}
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - REDIS_HOST=redis-staging
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       postgres-staging:
         condition: service_healthy
+      redis-staging:
+        condition: service_healthy
+    networks:
+      - gym-network-staging
     restart: unless-stopped
 
   frontend-staging:
@@ -106,7 +129,11 @@ services:
     restart: unless-stopped
 
 volumes:
+  redis_data_staging:
   postgres_data_staging:
+
+networks:
+  gym-network-staging:
 DOCKEREOF
 
 # Create .env file
@@ -122,6 +149,7 @@ MAIL_HOST=${MAIL_HOST}
 MAIL_PORT=${MAIL_PORT}
 MAIL_USERNAME=${MAIL_USERNAME}
 MAIL_PASSWORD=${MAIL_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
 ENVEOF
 
 # Load environment variables
