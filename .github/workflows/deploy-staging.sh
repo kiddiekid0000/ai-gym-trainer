@@ -58,14 +58,16 @@ services:
   redis-staging:
     image: redis/redis-stack:latest
     container_name: gym-trainer-redis-staging
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    environment:
+    - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: sh -c 'redis-server --requirepass $REDIS_PASSWORD'
     networks:
       - gym-network-staging
     volumes:
       - redis_data_staging:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+    test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
       interval: 10s
       timeout: 5s
       retries: 3
