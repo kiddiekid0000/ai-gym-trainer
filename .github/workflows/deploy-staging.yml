@@ -48,18 +48,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Test GitHub secrets on VM
+      - name: Check secret existence
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
-          chmod 600 ~/.ssh/azure_key
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "
-            echo 'Testing secret values:'
-            echo 'DOCKER_USERNAME from secret = ${{ secrets.DOCKER_USERNAME }}'
-            echo 'DB_USERNAME from secret = ${{ secrets.DB_USERNAME }}'
-            echo 'REDIS_PASSWORD from secret = ${{ secrets.REDIS_PASSWORD }}'
-          "
+          echo "REDIS_PASSWORD length = ${#REDIS_PASSWORD}"
+        env:
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
 
       - name: Deploy to Staging Azure VM
         run: |

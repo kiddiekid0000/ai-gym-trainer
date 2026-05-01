@@ -60,14 +60,14 @@ services:
     container_name: gym-trainer-redis-staging
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: sh -c 'redis-server --requirepass $REDIS_PASSWORD'
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - gym-network-staging
     volumes:
       - redis_data_staging:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -139,7 +139,7 @@ networks:
 DOCKEREOF
 
 # Create .env file
-cat > .env << 'ENVEOF'
+cat > .env << EOF
 DOCKER_USERNAME=${DOCKER_USERNAME}
 DB_URL=jdbc:postgresql://postgres-staging:5432/aigym_staging
 DB_USERNAME=${DB_USERNAME}
