@@ -54,26 +54,74 @@ jobs:
         env:
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
 
-      - name: Deploy to Staging Azure VM
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
-          chmod 600 ~/.ssh/azure_key
+      - name: Copy Docker Compose (Staging)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "docker-compose.staging.yml"
+          target: "~/app-staging"
 
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/azure_key .github/workflows/deploy-staging.sh ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }}:~/deploy.sh
-          
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key ${{ secrets.AZURE_USERNAME }}@${{ secrets.AZURE_SERVER_IP }} "
-            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
-            export DB_USERNAME="${{ secrets.DB_USERNAME }}"
-            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            export ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}"
-            export ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}"
-            export MAIL_HOST="${{ secrets.MAIL_HOST }}"
-            export MAIL_PORT="${{ secrets.MAIL_PORT }}"
-            export MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}"
-            export MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}"
-            export REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}"
-            chmod +x ~/deploy.sh
-            ~/deploy.sh
-          "
+      - name: Copy Nginx Config (Staging)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "nginx-staging.conf"
+          target: "~/app-staging"
+
+      - name: Deploy to Staging Azure VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          script: |
+            # Handle SSL certificates
+            sudo cp -r /etc/letsencrypt/archive/* /home/azureuser/app-staging/certbot/conf/archive/ 2>/dev/null || true
+            sudo cp -r /etc/letsencrypt/live/* /home/azureuser/app-staging/certbot/conf/live/ 2>/dev/null || true
+            sudo chown -R azureuser:azureuser /home/azureuser/app-staging/certbot 2>/dev/null || true
+            
+            # Clean up old frontend container
+            docker rm -f gym-trainer-frontend-staging 2>/dev/null || true
+            
+            mkdir -p ~/app-staging
+            cd ~/app-staging
+            
+            # Create .env file
+            cat > .env << EOF
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            DB_URL=jdbc:postgresql://postgres-staging:5432/aigym_staging
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            EOF
+
+            # Deploy with docker compose
+            echo "📦 Pulling images..."
+            docker compose -f docker-compose.staging.yml pull
+
+            echo "🐳 Starting containers..."
+            docker compose -f docker-compose.staging.yml up -d
+
+            echo "⏳ Waiting for containers to be ready..."
+            sleep 30
+
+            # Check deployment status
+            if docker ps | grep -q staging; then
+              echo "✅ Staging Deployment Successful!"
+              docker ps | grep staging
+            else
+              echo "❌ Staging Deployment Failed!"
+              docker compose -f docker-compose.staging.yml logs --tail 50
+              exit 1
+            fi
