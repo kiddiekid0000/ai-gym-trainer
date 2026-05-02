@@ -127,3 +127,5 @@ jobs:
               docker compose -f docker-compose.staging.yml logs --tail 50
               exit 1
             fi
+
+            #retest ci cd 1 more time
