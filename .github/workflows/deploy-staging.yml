@@ -84,7 +84,9 @@ jobs:
             sudo cp -r /etc/letsencrypt/live/* /home/azureuser/app-staging/certbot/conf/live/ 2>/dev/null || true
             sudo chown -R azureuser:azureuser /home/azureuser/app-staging/certbot 2>/dev/null || true
             
-            # Clean up old frontend container
+            # Clean up old containers
+            docker rm -f gym-trainer-backend-staging 2>/dev/null || true
+
             docker rm -f gym-trainer-frontend-staging 2>/dev/null || true
             
             mkdir -p ~/app-staging
