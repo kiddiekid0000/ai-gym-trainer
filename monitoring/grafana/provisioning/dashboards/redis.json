@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Redis Metrics",
+    "tags": ["redis", "cache"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Commands Per Second",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[5m])"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Cache Hit Rate",
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Connected Clients",
+        "targets": [
+          {
+            "expr": "redis_connected_clients"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Evicted Keys",
+        "targets": [
+          {
+            "expr": "rate(redis_evicted_keys_total[5m])"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Keyspace Statistics",
+        "targets": [
+          {
+            "expr": "redis_db_keys"
+          }
+        ],
+        "type": "graph"
+      }
+    ]
+  }
+}

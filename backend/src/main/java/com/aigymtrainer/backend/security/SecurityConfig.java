@@ -63,6 +63,8 @@ public class SecurityConfig {
             "http://localhost:3000", 
             "http://localhost:5173", 
             "https://localhost:5173",
+            "http://localhost",
+            "https://localhost",
             "https://gymaitrainer.duckdns.org",
             "http://gymaitrainer.duckdns.org"
         ));

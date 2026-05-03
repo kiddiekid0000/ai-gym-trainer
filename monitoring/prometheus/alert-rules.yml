@@ -1,0 +1,177 @@
+groups:
+  - name: System Alerts
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU Usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% (current value: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current value: {{ $value }}%)"
+
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"} / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Disk Usage on {{ $labels.instance }}"
+          description: "Disk usage is above 85% on {{ $labels.device }}"
+
+      - alert: DiskWillFillIn24h
+        expr: predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"}[1h], 24*3600) < 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk will fill in 24 hours on {{ $labels.instance }}"
+          description: "Disk on {{ $labels.device }} will fill up within the next 24 hours"
+
+  - name: Application Alerts
+    interval: 30s
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="gym-trainer-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application is down"
+          description: "Gym Trainer Backend has been down for more than 2 minutes"
+
+      - alert: HighResponseLatency
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API Response Latency"
+          description: "95th percentile response time is above 1 second (current: {{ $value }}s)"
+
+      - alert: HighErrorRate
+        expr: (rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Error Rate"
+          description: "Error rate (5xx responses) is above 5% (current: {{ $value }}%)"
+
+      - alert: HighJVMHeapUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High JVM Heap Memory Usage"
+          description: "JVM heap memory usage is above 85% (current: {{ $value }}%)"
+
+      - alert: GarbageCollectionPausing
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Excessive Garbage Collection Pauses"
+          description: "JVM is spending more than 50% of time in GC pauses"
+
+  - name: Database Alerts
+    interval: 30s
+    rules:
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL has been unreachable for more than 2 minutes"
+
+      - alert: PostgresHighConnections
+        expr: pg_stat_activity_connections / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High PostgreSQL Connection Count"
+          description: "Connection count is above 80% of max (current: {{ $value }}%)"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_statements_query_time_seconds[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow PostgreSQL Queries Detected"
+          description: "Slow query time is above 5 seconds"
+
+      - alert: PostgresHighCacheHitTime
+        expr: rate(pg_stat_statements_blk_read_time_seconds[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL High Disk I/O Time"
+          description: "Block read time indicates slow disk I/O"
+
+  - name: Redis Alerts
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been unreachable for more than 2 minutes"
+
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Redis Memory Usage"
+          description: "Redis memory usage is above 85% (current: {{ $value }}%)"
+
+      - alert: RedisHighEvictionRate
+        expr: rate(redis_evicted_keys_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis Keys Being Evicted"
+          description: "Redis is evicting keys, memory limit might be too low"
+
+      - alert: RedisCacheMissRateHigh
+        expr: (rate(redis_keyspace_misses_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))) * 100 > 30
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "High Redis Cache Miss Rate"
+          description: "Cache miss rate is above 30% (current: {{ $value }}%)"
+
+  - name: Container Health Alerts
+    interval: 30s
+    rules:
+      - alert: ContainerRestartingFrequently
+        expr: rate(container_last_seen{container_label_com_docker_compose_service=~"gym-trainer-backend|postgres|redis|frontend"}[15m]) > 0.016
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container Restarting Frequently: {{ $labels.container_label_com_docker_compose_service }}"
+          description: "Container has restarted more than once per minute"

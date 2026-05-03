@@ -48,12 +48,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check secret existence
-        run: |
-          echo "REDIS_PASSWORD length = ${#REDIS_PASSWORD}"
-        env:
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-
       - name: Copy Docker Compose (Staging)
         uses: appleboy/scp-action@master
         with:
@@ -70,6 +64,15 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "nginx-staging.conf"
+          target: "~/app-staging"
+
+      - name: Copy Monitoring Configuration (Staging)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AZURE_SERVER_IP }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "monitoring"
           target: "~/app-staging"
 
       - name: Deploy to Staging Azure VM
@@ -106,6 +109,8 @@ jobs:
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER || 'admin' }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
             EOF
 
             # Deploy with docker compose
@@ -128,4 +133,3 @@ jobs:
               exit 1
             fi
 
-            #retest ci cd 1 more time

@@ -1,0 +1,45 @@
+{
+  "dashboard": {
+    "title": "System Overview",
+    "tags": ["system", "node"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Disk Usage",
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Network I/O",
+        "targets": [
+          {
+            "expr": "rate(node_network_transmit_bytes_total[5m])"
+          }
+        ],
+        "type": "graph"
+      }
+    ]
+  }
+}
