@@ -1,0 +1,145 @@
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  color: white;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5em;
+  margin: 0;
+  font-weight: 700;
+}
+
+.logout-btn {
+  padding: 10px 30px;
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.logout-btn:hover {
+  background-color: #ff5252;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.menu-card {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  border: 3px solid transparent;
+}
+
+.menu-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.menu-card .menu-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.menu-card h2 {
+  font-size: 1.8em;
+  margin: 15px 0;
+  color: #333;
+}
+
+.menu-card p {
+  color: #666;
+  font-size: 1em;
+  margin: 0;
+}
+
+.exercises-card {
+  border-color: #667eea;
+}
+
+.exercises-card:hover {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+}
+
+.records-card {
+  border-color: #f093fb;
+}
+
+.records-card:hover {
+  border-color: #f093fb;
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, transparent 100%);
+}
+
+.my-records-card {
+  border-color: #4facfe;
+}
+
+.my-records-card:hover {
+  border-color: #4facfe;
+  background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, transparent 100%);
+}
+
+.profile-card {
+  border-color: #43e97b;
+}
+
+.profile-card:hover {
+  border-color: #43e97b;
+  background: linear-gradient(135deg, rgba(67, 233, 123, 0.1) 0%, transparent 100%);
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .dashboard-header h1 {
+    font-size: 2em;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .menu-card {
+    padding: 20px;
+  }
+
+  .menu-card .menu-icon {
+    font-size: 2.5em;
+  }
+
+  .menu-card h2 {
+    font-size: 1.5em;
+  }
+}

@@ -1,0 +1,54 @@
+/* src/pages/LeaderboardPage.css */
+.leaderboard-page {
+  padding: 20px;
+}
+
+.exercise-selector {
+  margin-bottom: 30px;
+}
+
+.exercises-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.exercise-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.exercise-item:hover {
+  background-color: #e9ecef;
+}
+
+.exercise-item.selected {
+  border-color: #007bff;
+  background-color: #e7f3ff;
+}
+
+.leaderboard {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th, .leaderboard-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.leaderboard-table th {
+  background-color: #f2f2f2;
+}
