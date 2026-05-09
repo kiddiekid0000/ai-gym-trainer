@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Application Performance",
+    "tags": ["application", "spring-boot"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "HTTP Request Rate",
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_count[5m])"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "API Response Time (95th percentile)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "JVM Heap Memory",
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{area=\"heap\"}"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Active Threads",
+        "targets": [
+          {
+            "expr": "jvm_threads_live_threads"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "GC Pause Time",
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum[5m])"
+          }
+        ],
+        "type": "graph"
+      }
+    ]
+  }
+}

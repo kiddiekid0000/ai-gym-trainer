@@ -23,21 +23,16 @@ import com.aigymtrainer.backend.security.filter.UserRateLimitFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;
-    private final RateLimitFilter rateLimitFilter;
-    private final UserRateLimitFilter userRateLimitFilter;
-    private final SecurityHeadersFilter securityHeadersFilter;
-
-    public SecurityConfig(JwtFilter jwtFilter, RateLimitFilter rateLimitFilter,
-                          UserRateLimitFilter userRateLimitFilter, SecurityHeadersFilter securityHeadersFilter) {
-        this.jwtFilter = jwtFilter;
-        this.rateLimitFilter = rateLimitFilter;
-        this.userRateLimitFilter = userRateLimitFilter;
-        this.securityHeadersFilter = securityHeadersFilter;
+    // Clean constructor - no dependencies
+    public SecurityConfig() {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtFilter jwtFilter,
+                                                   RateLimitFilter rateLimitFilter,
+                                                   UserRateLimitFilter userRateLimitFilter,
+                                                   SecurityHeadersFilter securityHeadersFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for API
@@ -68,6 +63,8 @@ public class SecurityConfig {
             "http://localhost:3000", 
             "http://localhost:5173", 
             "https://localhost:5173",
+            "http://localhost",
+            "https://localhost",
             "https://gymaitrainer.duckdns.org",
             "http://gymaitrainer.duckdns.org"
         ));

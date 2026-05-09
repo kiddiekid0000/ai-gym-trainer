@@ -42,28 +42,72 @@ const UserPage = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!profileData) return <div>No profile data</div>;
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  if (loading) return <div className="loading">Loading...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+  if (!profileData) return <div className="error">No profile data</div>;
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>User Profile</h1>
-      
-      <div style={{ marginTop: '20px', border: '1px solid #ccc', padding: '15px' }}>
-        <p><strong>ID:</strong> {profileData.id}</p>
-        <p><strong>Email:</strong> {profileData.email}</p>
-        <p><strong>Role:</strong> {profileData.role}</p>
-        <p><strong>Verified:</strong> {profileData.verified ? '✓ Yes' : '✗ No'}</p>
-        <p><strong>Status:</strong> {profileData.status}</p>
-      </div>
+    <div className="user-page">
+      <header className="page-header">
+        <h1>👤 Your Profile</h1>
+        <div className="header-buttons">
+          <button className="back-btn" onClick={() => navigate('/dashboard')}>
+            ← Back to Dashboard
+          </button>
+          <button className="logout-btn" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
+      </header>
 
-      <button 
-        onClick={logout}
-        style={{ marginTop: '20px', padding: '10px 20px' }}
-      >
-        Logout
-      </button>
+      <main className="profile-main">
+        <div className="profile-card">
+          <div className="profile-header">
+            <h2>Account Information</h2>
+          </div>
+          <div className="profile-info">
+            <div className="info-row">
+              <span className="info-label">User ID:</span>
+              <span className="info-value">{profileData.id}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Email:</span>
+              <span className="info-value">{profileData.email}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Role:</span>
+              <span className="info-value">
+                <span className={`role-badge role-${profileData.role.toLowerCase()}`}>
+                  {profileData.role}
+                </span>
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Verified:</span>
+              <span className="info-value">
+                {profileData.verified ? (
+                  <span className="verified-badge">✓ Verified</span>
+                ) : (
+                  <span className="unverified-badge">✗ Not Verified</span>
+                )}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Account Status:</span>
+              <span className="info-value">
+                <span className={`status-badge status-${profileData.status.toLowerCase()}`}>
+                  {profileData.status}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -20,7 +20,7 @@ export const useAuth = () => {
         if (response.role === 'ADMIN') {
           navigate('/admin');
         } else {
-          navigate('/user');
+          navigate('/dashboard');
         }
       }
     } catch (err: any) {

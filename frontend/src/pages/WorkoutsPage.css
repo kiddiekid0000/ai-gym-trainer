@@ -1,0 +1,45 @@
+/* src/pages/WorkoutsPage.css */
+.workouts-page {
+  padding: 20px;
+}
+
+.current-workout, .workout-history, .personal-records {
+  margin-bottom: 30px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+}
+
+.add-set {
+  margin: 16px 0;
+}
+
+.add-set input {
+  margin-right: 10px;
+  padding: 8px;
+  width: 120px;
+}
+
+button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.workout-card, .record-card {
+  border-bottom: 1px solid #ddd;
+  padding: 8px 0;
+}
+
+.workout-card:last-child, .record-card:last-child {
+  border-bottom: none;
+}
