@@ -1,140 +1,146 @@
 /* src/pages/UserPage.css */
-.user-dashboard {
+.user-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: #f5f5f5;
 }
 
-.dashboard-header {
-  background-color: #007bff;
+.page-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: white;
-  padding: 1rem 2rem;
+  padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.dashboard-header h1 {
+.page-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
-.logout-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.logout-btn:hover {
-  background-color: #c82333;
-}
-
-.dashboard-content {
+.header-buttons {
   display: flex;
-  flex: 1;
-}
-
-.dashboard-sidebar {
-  width: 250px;
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-right: 1px solid #dee2e6;
-}
-
-.menu-section h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #495057;
-}
-
-.menu-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.menu-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: white;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s;
-}
-
-.menu-btn:hover {
-  background-color: #e9ecef;
-  border-color: #007bff;
-}
-
-.menu-icon {
-  font-size: 1.2rem;
-}
-
-.dashboard-main {
-  flex: 1;
-  padding: 2rem;
-  background-color: #ffffff;
-}
-
-.profile-section h2,
-.quick-actions h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #495057;
-}
-
-.profile-card {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.profile-info p {
-  margin: 0.5rem 0;
-  font-size: 1rem;
-}
-
-.action-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
 }
 
-.action-card {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem;
+.back-btn, .logout-btn {
+  background-color: rgba(255,255,255,0.2);
+  color: white;
+  border: 2px solid white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-.action-card:hover {
-  background-color: #e9ecef;
-  border-color: #007bff;
+.back-btn:hover {
+  background-color: rgba(255,255,255,0.3);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.action-card h3 {
-  margin: 0 0 0.5rem 0;
-  color: #007bff;
+.logout-btn:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  transform: translateY(-2px);
 }
 
-.action-card p {
+.profile-main {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.profile-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+}
+
+.profile-header {
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.profile-header h2 {
   margin: 0;
-  color: #6c757d;
+  color: #007bff;
+  font-size: 1.5rem;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 150px;
+}
+
+.info-value {
+  color: #212529;
+  font-size: 1rem;
+}
+
+.role-badge, .status-badge, .verified-badge, .unverified-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.role-user {
+  background-color: #e3f2fd;
+  color: #0056b3;
+}
+
+.role-admin {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.status-active {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.status-inactive {
+  background-color: #ffcccc;
+  color: #c62828;
+}
+
+.verified-badge {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.unverified-badge {
+  background-color: #ffcccc;
+  color: #c62828;
 }
 
 .loading, .error {
