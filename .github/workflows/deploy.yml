@@ -47,8 +47,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Split into 2 steps to prevent losing docker-compose.yml due to strip_components
-      - name: Copy Docker Compose
+      - name: Copy Docker Compose (Production)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
@@ -57,18 +56,15 @@ jobs:
           source: "docker-compose.yml"
           target: "~/app"
 
-      # Copy nginx.conf and strip the 'frontend/' prefix
-      - name: Copy Nginx Config
+      - name: Copy Nginx Config (Production)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "frontend/nginx.conf"
-          target: "~/app"
-          strip_components: 1
+          target: "~/app/nginx.conf"
 
-      # Copy monitoring configuration
       - name: Copy Monitoring Configuration
         uses: appleboy/scp-action@master
         with:
@@ -85,6 +81,15 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
+            # Handle SSL certificates
+            sudo cp -r /etc/letsencrypt/archive/* /home/azureuser/app/certbot/conf/archive/ 2>/dev/null || true
+            sudo cp -r /etc/letsencrypt/live/* /home/azureuser/app/certbot/conf/live/ 2>/dev/null || true
+            sudo chown -R azureuser:azureuser /home/azureuser/app/certbot 2>/dev/null || true
+            
+            # Clean up old containers
+            docker rm -f gym-trainer-backend 2>/dev/null || true
+            docker rm -f gym-trainer-frontend 2>/dev/null || true
+            
             mkdir -p ~/app
             cd ~/app
             
@@ -106,24 +111,22 @@ jobs:
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
             EOF
 
-            docker compose down --remove-orphans
-            docker compose pull
-            docker compose up -d --force-recreate
-            
-            docker image prune -f
+            echo "📦 Pulling images..."
+            docker compose -f docker-compose.yml pull
 
-            echo "Checking Nginx configuration..."
-            docker exec gym-trainer-frontend nginx -t
-            
-            echo "Waiting for containers to stabilize..."
-            sleep 25
-            
-            if [ "$(docker inspect -f '{{.State.Running}}' gym-trainer-backend)" == "true" ]; then
-                echo "Deployment Successful"
-                docker ps
-                exit 0
+            echo "🐳 Starting containers..."
+            docker compose -f docker-compose.yml up -d
+
+            echo "⏳ Waiting for containers to be ready..."
+            sleep 30
+
+            # Check deployment status
+            if docker ps | grep -q gym-trainer-frontend; then
+              echo "✅ Production Deployment Successful!"
+              docker ps
+              exit 0
             else
-                echo "Deployment Failed - Backend is down"
-                docker compose logs --tail 100 gym-trainer-backend
-                exit 1
+              echo "❌ Production Deployment Failed!"
+              docker compose -f docker-compose.yml logs --tail 50
+              exit 1
             fi
