@@ -1,4 +1,4 @@
-name: CI/CD Gym App Full Stack
+name: CI/CD Gym App - Production
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Backend
+      - name: Build and push Backend (Production)
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -32,7 +32,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-backend:latest
 
-      - name: Build and push Frontend
+      - name: Build and push Frontend (Production)
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -40,9 +40,10 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/gymapp-frontend:latest
 
-  deploy:
+  deploy-production:
     needs: build-and-push
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,28 +58,16 @@ jobs:
           target: "~/app"
           overwrite: true
 
-      - name: Clean up old nginx config on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.AZURE_SERVER_IP }}
-          username: ${{ secrets.AZURE_USERNAME }}
-          key: ${{ secrets.AZURE_SSH_KEY }}
-          script: |
-            rm -rf ~/app/frontend 2>/dev/null || true
-            rm -f ~/app/nginx.conf 2>/dev/null || true
-            ls -la ~/app/
-
       - name: Copy Nginx Config (Production)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
-          source: "frontend/nginx.conf"
-          target: "~/app/nginx.conf"
-          overwrite: true
+          source: "nginx.conf"
+          target: "~/app"
 
-      - name: Copy Monitoring Configuration
+      - name: Copy Monitoring Configuration (Production)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
@@ -88,7 +77,7 @@ jobs:
           target: "~/app"
           overwrite: true
 
-      - name: Deploy to Azure VM
+      - name: Deploy to Production Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
@@ -107,20 +96,20 @@ jobs:
             mkdir -p ~/app
             cd ~/app
             
-            cat <<EOF > .env
+            # Create .env file
+            cat > .env << EOF
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            DB_URL=${{ secrets.DB_URL }}
+            DB_URL=jdbc:postgresql://postgres:5432/aigym
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
-            REDIS_HOST=${{ secrets.REDIS_HOST }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
             MAIL_HOST=${{ secrets.MAIL_HOST }}
             MAIL_PORT=${{ secrets.MAIL_PORT }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER || 'admin' }}
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
             EOF
