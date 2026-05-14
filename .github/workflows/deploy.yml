@@ -57,7 +57,7 @@ jobs:
           target: "~/app"
           overwrite: true
 
-      - name: Clean up old nginx config on server  # 👈 THÊM STEP NÀY
+      - name: Clean up old nginx config on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_SERVER_IP }}
@@ -65,6 +65,8 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           script: |
             rm -rf ~/app/frontend 2>/dev/null || true
+            rm -f ~/app/nginx.conf 2>/dev/null || true
+            ls -la ~/app/
 
       - name: Copy Nginx Config (Production)
         uses: appleboy/scp-action@master
@@ -73,7 +75,7 @@ jobs:
           username: ${{ secrets.AZURE_USERNAME }}
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "frontend/nginx.conf"
-          target: "~/app"
+          target: "~/app/nginx.conf"
           overwrite: true
 
       - name: Copy Monitoring Configuration
