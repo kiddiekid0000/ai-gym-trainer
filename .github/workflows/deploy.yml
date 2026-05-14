@@ -65,6 +65,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "frontend/nginx.conf"
           target: "~/app"
+          rm: true
           overwrite: true
 
       - name: Copy Monitoring Configuration
