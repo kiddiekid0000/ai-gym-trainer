@@ -55,6 +55,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "docker-compose.yml"
           target: "~/app"
+          overwrite: true
 
       - name: Copy Nginx Config (Production)
         uses: appleboy/scp-action@master
@@ -64,6 +65,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "frontend/nginx.conf"
           target: "~/app"
+          overwrite: true
 
       - name: Copy Monitoring Configuration
         uses: appleboy/scp-action@master
@@ -73,6 +75,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_KEY }}
           source: "monitoring"
           target: "~/app"
+          overwrite: true
 
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
